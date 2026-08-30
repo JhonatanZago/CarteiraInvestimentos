@@ -1,0 +1,11 @@
+<div class="app-shell">
+  <header class="topbar"><a class="brand" routerLink="/carteiras">Carteira<span>+</span></a><button class="menu-button" type="button" (click)="menuOpen.update(value => !value)" aria-label="Abrir menu">☰</button></header>
+  <aside class="sidebar" [class.open]="menuOpen()"><nav aria-label="Navegação principal">
+    <a routerLink="/dashboard/1" routerLinkActive="active">Visão geral</a>
+    <a routerLink="/carteiras" routerLinkActive="active">Carteiras</a>
+    <a routerLink="/acoes" routerLinkActive="active">Ações</a>
+    <a routerLink="/corretoras" routerLinkActive="active">Corretoras</a>
+  </nav></aside>
+  <main class="content"><router-outlet /></main>
+</div>
+<section class="toasts" aria-live="polite">@for (toast of notifications.notifications(); track toast.id) { <button type="button" class="toast" [class]="toast.tone" (click)="notifications.dismiss(toast.id)">{{ toast.message }}</button> }</section>
