@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from './api-url.token';
@@ -67,15 +67,15 @@ export class CarteirasApiService {
 export class DashboardApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
-  getPortfolio(carteiraId: number): Observable<DashboardCarteira> {
-    return this.http.get<DashboardCarteira>(`${this.baseUrl}/dashboard/carteiras/${carteiraId}`);
+  getPortfolio(carteiraId: number, context?: HttpContext): Observable<DashboardCarteira> {
+    return this.http.get<DashboardCarteira>(`${this.baseUrl}/dashboard/carteiras/${carteiraId}`, context ? { context } : {});
   }
 }
 
 @Injectable({ providedIn: 'root' })
 export class InsightsApiService {
   private readonly http = inject(HttpClient); private readonly baseUrl = inject(API_BASE_URL);
-  indicators(): Observable<MarketIndicator[]> { return this.http.get<MarketIndicator[]>(`${this.baseUrl}/mercado/indicadores`); }
-  evolution(carteiraId: number): Observable<PortfolioEvolutionPoint[]> { return this.http.get<PortfolioEvolutionPoint[]>(`${this.baseUrl}/carteiras/${carteiraId}/evolucao`); }
-  income(carteiraId: number): Observable<IncomeSummary> { return this.http.get<IncomeSummary>(`${this.baseUrl}/carteiras/${carteiraId}/proventos`); }
+  indicators(context?: HttpContext): Observable<MarketIndicator[]> { return this.http.get<MarketIndicator[]>(`${this.baseUrl}/mercado/indicadores`, context ? { context } : {}); }
+  evolution(carteiraId: number, context?: HttpContext): Observable<PortfolioEvolutionPoint[]> { return this.http.get<PortfolioEvolutionPoint[]>(`${this.baseUrl}/carteiras/${carteiraId}/evolucao`, context ? { context } : {}); }
+  income(carteiraId: number, context?: HttpContext): Observable<IncomeSummary> { return this.http.get<IncomeSummary>(`${this.baseUrl}/carteiras/${carteiraId}/proventos`, context ? { context } : {}); }
 }

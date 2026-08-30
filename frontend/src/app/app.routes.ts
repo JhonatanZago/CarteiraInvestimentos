@@ -7,5 +7,5 @@ export const routes: Routes = [
   { path: 'corretoras', component: CorretorasPage }, { path: 'acoes', component: AcoesPage },
   { path: 'carteiras', component: CarteirasPage }, { path: 'historico/:acaoId', component: HistoricoPage },
   { path: 'carteiras/:carteiraId/posicoes', component: PositionTablePage },
-  { path: 'dashboard/:carteiraId', component: InsightsDashboardPage }, { path: '', pathMatch: 'full', redirectTo: 'carteiras' },
+  { path: 'dashboard', component: InsightsDashboardPage }, { path: 'dashboard/:carteiraId', component: InsightsDashboardPage }, { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
 ];

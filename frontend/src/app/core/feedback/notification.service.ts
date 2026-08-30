@@ -8,6 +8,7 @@ export class NotificationService {
   readonly notifications = signal<Notification[]>([]);
 
   show(message: string, tone: Notification['tone'] = 'info'): void {
+    if (this.notifications().some(item => item.message === message && item.tone === tone)) return;
     const item = { id: ++this.nextId, message, tone };
     this.notifications.update(items => [...items, item]);
     window.setTimeout(() => this.dismiss(item.id), 4500);
