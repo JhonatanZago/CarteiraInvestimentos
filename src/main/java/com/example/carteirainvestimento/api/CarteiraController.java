@@ -87,6 +87,21 @@ public class CarteiraController {
         return ativos.listar(carteiraId, mercado, classificacao, busca, ordenarPor).stream().map(AtivoCarteiraMapper::toResponse).toList();
     }
 
+    @GetMapping("/{carteiraId}/posicoes/paginadas")
+    public PageResponse<AtivoCarteiraResponse> listarPosicoesPaginadas(@PathVariable Long carteiraId,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) Mercado mercado,
+            @RequestParam(required = false) ClassificacaoAlocacao classificacao,
+            @RequestParam(required = false) String busca,
+            @RequestParam(required = false) String ordenarPor) {
+        List<AtivoCarteiraResponse> filtradas = ativos.listar(carteiraId, mercado, classificacao, busca, ordenarPor)
+                .stream().map(AtivoCarteiraMapper::toResponse).toList();
+        int inicio = Math.min(page * size, filtradas.size());
+        int fim = Math.min(inicio + size, filtradas.size());
+        return new PageResponse<>(filtradas.subList(inicio, fim), page, size, filtradas.size(),
+                (int) Math.ceil((double) filtradas.size() / size));
+    }
+
     @PutMapping("/{carteiraId}/posicoes/{posicaoId}")
     public AtivoCarteiraResponse atualizarPosicao(
             @PathVariable Long carteiraId, @PathVariable Long posicaoId,

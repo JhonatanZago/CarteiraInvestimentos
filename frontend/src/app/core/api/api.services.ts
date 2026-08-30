@@ -54,6 +54,10 @@ export class CarteirasApiService {
     let params = new HttpParams(); Object.entries(filters).forEach(([key, value]) => { if (value) params = params.set(key, value); });
     return this.http.get<Posicao[]>(`${this.baseUrl}/carteiras/${carteiraId}/posicoes`, { params });
   }
+  listPositionsPage(carteiraId: number, page = 0, size = 20, filters: { mercado?: string; classificacao?: string; busca?: string; ordenarPor?: string } = {}): Observable<PageResponse<Posicao>> {
+    let params = new HttpParams().set('page', page).set('size', size); Object.entries(filters).forEach(([key, value]) => { if (value) params = params.set(key, value); });
+    return this.http.get<PageResponse<Posicao>>(`${this.baseUrl}/carteiras/${carteiraId}/posicoes/paginadas`, { params });
+  }
   createPosition(carteiraId: number, request: PosicaoRequest): Observable<Posicao> { return this.http.post<Posicao>(`${this.baseUrl}/carteiras/${carteiraId}/posicoes`, request); }
   updatePosition(carteiraId: number, posicaoId: number, request: PosicaoRequest): Observable<Posicao> { return this.http.put<Posicao>(`${this.baseUrl}/carteiras/${carteiraId}/posicoes/${posicaoId}`, request); }
   deletePosition(carteiraId: number, posicaoId: number): Observable<void> { return this.http.delete<void>(`${this.baseUrl}/carteiras/${carteiraId}/posicoes/${posicaoId}`); }
