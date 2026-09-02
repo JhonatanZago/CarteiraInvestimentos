@@ -42,17 +42,17 @@ const money = (value: number) =>
         (keyup.enter)="lookup(cnpj.value)"
       />
     </header>
-    <section class="panel">
-      <form [formGroup]="form" (ngSubmit)="save()">
-        <label>CNPJ<input formControlName="cnpj" placeholder="00.000.000/0000-00" aria-label="CNPJ" inputmode="numeric" /></label><small class="help-text">Informe o CNPJ da instituição.</small><input
+    <section class="panel broker-form-card">
+      <form class="broker-form-grid" [formGroup]="form" (ngSubmit)="save()">
+        <label>CNPJ<input formControlName="cnpj" placeholder="00.000.000/0000-00" aria-label="CNPJ" inputmode="numeric" /><small class="help-text">Informe o CNPJ da instituição.</small></label><label>CEP<input
           formControlName="cep"
           placeholder="00000-000" inputmode="numeric"
           aria-label="CEP"
-        /><input formControlName="numero" placeholder="Número" aria-label="Número" /><input
+        /></label><label>Número<input formControlName="numero" placeholder="Número" aria-label="Número" /></label><label>Complemento<input
           formControlName="complemento"
           placeholder="Complemento"
           aria-label="Complemento"
-        /><button [disabled]="form.invalid || saving()">
+        /></label><button [disabled]="form.invalid || saving()">
           {{ saving() ? 'Validando…' : 'Cadastrar' }}
         </button>
       </form>
@@ -76,7 +76,7 @@ const money = (value: number) =>
               <tr>
                 <td>{{ item.razaoSocial }}</td>
                 <td>{{ item.cnpj }}</td>
-                <td>{{ item.validadaMercadoFinanceiro ? 'Validada' : 'Pendente' }}</td>
+                <td><span class="status-badge" [class.validated]="item.validadaMercadoFinanceiro" [class.pending]="!item.validadaMercadoFinanceiro">{{ item.validadaMercadoFinanceiro ? 'Validada' : 'Pendente' }}</span></td>
               </tr>
             }
           </tbody>
@@ -147,8 +147,8 @@ export class CorretorasPage {
         (keyup.enter)="lookup(tickerLookup.value)"
       />
     </header>
-    <section class="panel">
-      <form [formGroup]="form" (ngSubmit)="save()">
+    <section class="panel asset-form-card">
+      <form class="asset-form-grid" [formGroup]="form" (ngSubmit)="save()">
         <label>Ticker<input formControlName="ticker" placeholder="Ex.: PETR4" aria-label="Ticker" /></label><small class="help-text">Código de negociação do ativo na bolsa.</small><select
           formControlName="mercado"
           aria-label="Mercado"
@@ -179,7 +179,7 @@ export class CorretorasPage {
             @for (item of items(); track item.id) {
               <tr>
                 <td>
-                  <a [routerLink]="['/historico', item.id]">{{ item.ticker }}</a>
+                  <a class="ticker-badge" [routerLink]="['/historico', item.id]">{{ item.ticker }}</a>
                 </td>
                 <td>{{ item.nomeEmpresa }}</td>
                 <td>{{ money(item.cotacaoAtual) }}</td>
@@ -262,12 +262,11 @@ export class AcoesPage {
   template: ` <section class="page">
     <header class="page-header">
       <div>
-        <h1>Minhas carteiras</h1>
+        <h1>Carteiras</h1>
         <p class="muted">Posições e resultados são calculados no backend.</p>
       </div>
     </header>
-    <section class="panel portfolio-form-card">
-      <h2>Nova carteira</h2>
+    <section class="panel">
       <form [formGroup]="portfolioForm" (ngSubmit)="savePortfolio()">
         <input
           formControlName="nome"
@@ -282,7 +281,7 @@ export class AcoesPage {
         ><button class="secondary" type="button" (click)="clearEditing()">Limpar</button>
       </form>
     </section>
-    <section class="grid portfolio-layout" style="grid-template-columns: minmax(15rem, .6fr) minmax(0, 1.4fr)">
+    <section class="grid" style="grid-template-columns: minmax(15rem, .6fr) minmax(0, 1.4fr)">
       <section class="panel">
         @if (loading()) {
           <app-loading />
@@ -302,8 +301,7 @@ export class AcoesPage {
       <section class="panel">
         @if (selected()) {
           <h2>{{ selected()!.nome }}</h2>
-          <a [routerLink]="['/dashboard', selected()!.id]">Abrir visão geral</a>
-          <h2>Adicionar posição</h2>
+          <a [routerLink]="['/dashboard', selected()!.id]">Abrir dashboard</a>
           <form [formGroup]="positionForm" (ngSubmit)="savePosition()">
             <input
               type="number"
