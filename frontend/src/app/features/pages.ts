@@ -262,72 +262,73 @@ export class AcoesPage {
   template: ` <section class="page">
     <header class="page-header">
       <div>
+        <p class="eyebrow">SEU PATRIMÔNIO</p>
         <h1>Carteiras</h1>
         <p class="muted">Posições e resultados são calculados no backend.</p>
       </div>
     </header>
-    <section class="panel">
-      <form [formGroup]="portfolioForm" (ngSubmit)="savePortfolio()">
-        <input
+    <section class="panel portfolio-form-card">
+      <div class="form-card-heading"><span class="form-icon" aria-hidden="true">▣</span><div><h2>{{ editing() ? 'Editar carteira' : 'Nova carteira' }}</h2><p class="muted">Defina um nome e uma descrição para identificar sua carteira.</p></div></div>
+      <form class="portfolio-form-grid" [formGroup]="portfolioForm" (ngSubmit)="savePortfolio()">
+        <label>Nome da carteira<input
           formControlName="nome"
           placeholder="Nome da carteira"
           aria-label="Nome da carteira"
-        /><input
+        /></label><label class="description-field">Descrição<input
           formControlName="descricao"
           placeholder="Descrição"
           aria-label="Descrição"
-        /><button [disabled]="portfolioForm.invalid || saving()">
+        /></label><div class="form-actions"><button [disabled]="portfolioForm.invalid || saving()">
           {{ editing() ? 'Salvar alterações' : 'Criar carteira' }}</button
-        ><button class="secondary" type="button" (click)="clearEditing()">Limpar</button>
+        ><button class="secondary" type="button" (click)="clearEditing()">Limpar</button></div>
       </form>
     </section>
-    <section class="grid" style="grid-template-columns: minmax(15rem, .6fr) minmax(0, 1.4fr)">
-      <section class="panel">
+    <section class="grid" style="grid-template-columns: minmax(280px, .7fr) minmax(0, 1.7fr); gap: 20px">
+      <section class="panel portfolio-list-panel">
+        <header class="collection-heading"><h2>Minhas carteiras</h2><span class="portfolio-count">{{ portfolios().length }}</span></header>
         @if (loading()) {
           <app-loading />
         } @else if (!portfolios().length) {
           <app-empty-state title="Nenhuma carteira" />
         } @else {
           @for (item of portfolios(); track item.id) {
-            <p>
-              <button class="secondary" (click)="select(item)">{{ item.nome }}</button>
-              <button class="danger" aria-label="Excluir carteira" (click)="requestDelete(item)">
-                Excluir
-              </button>
-            </p>
+            <article class="portfolio-card" [class.selected]="selected()?.id === item.id">
+              <button class="portfolio-card-select" (click)="select(item)"><span class="portfolio-initial">{{ item.nome.charAt(0).toUpperCase() }}</span><span class="portfolio-card-copy"><strong>{{ item.nome }}</strong>@if (item.descricao) { <small>{{ item.descricao }}</small> }</span></button>
+              <button class="portfolio-delete" aria-label="Excluir carteira" (click)="requestDelete(item)">Excluir</button>
+            </article>
           }
         }
       </section>
-      <section class="panel">
+      <section class="panel portfolio-detail-panel">
         @if (selected()) {
-          <h2>{{ selected()!.nome }}</h2>
-          <a [routerLink]="['/dashboard', selected()!.id]">Abrir dashboard</a>
-          <form [formGroup]="positionForm" (ngSubmit)="savePosition()">
-            <input
+          <header class="portfolio-detail-header"><span class="portfolio-initial">{{ selected()!.nome.charAt(0).toUpperCase() }}</span><div class="portfolio-detail-copy"><h2>{{ selected()!.nome }}</h2><p class="muted">{{ selected()!.descricao || 'Carteira de investimentos' }}</p></div><span class="selected-badge">Selecionada</span><a class="overview-link" [routerLink]="['/dashboard', selected()!.id]">Abrir visão geral</a></header>
+          <hr class="section-divider"><h2>Adicionar posição</h2>
+          <form class="position-form-grid" [formGroup]="positionForm" (ngSubmit)="savePosition()">
+            <label>ID da ação<input
               type="number"
               formControlName="acaoId"
               placeholder="ID ação"
               aria-label="ID ação"
-            /><input
+            /></label><label>ID da corretora<input
               type="number"
               formControlName="corretoraId"
               placeholder="ID corretora"
               aria-label="ID corretora"
-            /><input
+            /></label><label>Quantidade<input
               type="number"
               formControlName="quantidade"
               placeholder="Quantidade"
               aria-label="Quantidade"
-            /><input
+            /></label><label>Preço médio<input
               type="number"
               formControlName="precoMedio"
               placeholder="Preço médio"
               aria-label="Preço médio"
-            /><input
+            /></label><label>Data da primeira compra<input
               type="date"
               formControlName="dataPrimeiraCompra"
               aria-label="Data da compra"
-            /><button [disabled]="positionForm.invalid || saving()">
+            /></label><button [disabled]="positionForm.invalid || saving()">
               {{ editingPosition() ? 'Salvar posição' : 'Adicionar posição' }}
             </button>
           </form>
@@ -338,6 +339,9 @@ export class AcoesPage {
               <thead>
                 <tr>
                   <th>Ativo</th>
+                  <th>Quantidade</th>
+                  <th>Preço médio</th>
+                  <th>Investido</th>
                   <th>Atual</th>
                   <th>Resultado</th>
                   <th></th>
@@ -346,9 +350,10 @@ export class AcoesPage {
               <tbody>
                 @for (position of positions(); track position.id) {
                   <tr>
-                    <td>
-                      {{ position.ticker }}<small> {{ position.quantidade }} un.</small>
-                    </td>
+                    <td><strong>{{ position.ticker }}</strong><small>{{ position.nomeEmpresa }}</small></td>
+                    <td>{{ position.quantidade }}</td>
+                    <td>{{ money(position.precoMedio) }}</td>
+                    <td>{{ money(position.valorInvestido) }}</td>
                     <td>{{ money(position.valorAtual) }}</td>
                     <td
                       [class.positive]="position.resultado >= 0"
@@ -535,7 +540,7 @@ export class CarteirasPage {
         <p class="muted">Pontos retornados pela API, do mais recente ao mais antigo.</p>
       </div>
     </header>
-    <section class="panel">
+    <section class="panel portfolio-list-panel">
       <form [formGroup]="form" (ngSubmit)="load()">
         <input
           type="number"
