@@ -1,7 +1,14 @@
 <div class="app-shell">
-  <header class="topbar"><a class="brand" routerLink="/carteiras">Carteira<span>+</span></a><button class="menu-button" type="button" (click)="menuOpen.update(value => !value)" [attr.aria-expanded]="menuOpen()" aria-label="Abrir menu de navegação">☰</button></header>
-  <aside class="sidebar" [class.open]="menuOpen()"><a class="brand sidebar-brand" routerLink="/carteiras">Carteira<span>+</span></a><nav aria-label="Navegação principal">
-    <a routerLink="/dashboard" routerLinkActive="active" (click)="menuOpen.set(false)"><span>◈</span> Visão geral</a><a routerLink="/carteiras" routerLinkActive="active" (click)="menuOpen.set(false)"><span>▣</span> Minhas carteiras</a><a routerLink="/acoes" routerLinkActive="active" (click)="menuOpen.set(false)"><span>↗</span> Ações</a><a routerLink="/corretoras" routerLinkActive="active" (click)="menuOpen.set(false)"><span>◉</span> Corretoras</a>
-  </nav><div class="sidebar-footer"><strong>Precisa de ajuda?</strong><span>Organize seus investimentos com dados reais.</span></div></aside>
+  <header class="topbar"><div class="topbar-inner">
+    <a class="brand" routerLink="/carteiras">Carteira<span>+</span></a>
+    <nav class="main-nav" aria-label="Navegação principal" [class.open]="menuOpen()">
+      <a routerLink="/dashboard" routerLinkActive="active" (click)="menuOpen.set(false)">Visão geral</a>
+      <a routerLink="/carteiras" routerLinkActive="active" (click)="menuOpen.set(false)">Carteiras</a>
+      <a routerLink="/acoes" routerLinkActive="active" (click)="menuOpen.set(false)">Ativos</a>
+      <a routerLink="/corretoras" routerLinkActive="active" (click)="menuOpen.set(false)">Corretoras</a>
+    </nav>
+    <div class="topbar-actions"><button class="notification" type="button" aria-label="Notificações">●</button><span class="avatar" aria-label="Perfil do usuário">JD</span><button class="menu-button" type="button" (click)="menuOpen.update(value => !value)" [attr.aria-expanded]="menuOpen()" aria-label="Abrir menu de navegação">☰</button></div>
+  </div></header>
   <main class="content"><router-outlet /></main>
-</div><section class="toasts" aria-live="polite">@for (toast of notifications.notifications(); track toast.id) { <button type="button" class="toast" [class]="toast.tone" (click)="notifications.dismiss(toast.id)">{{ toast.message }}</button> }</section>
+</div>
+<section class="toasts" aria-live="polite">@for (toast of notifications.notifications(); track toast.id) { <button type="button" class="toast" [class]="toast.tone" (click)="notifications.dismiss(toast.id)">{{ toast.message }}</button> }</section>

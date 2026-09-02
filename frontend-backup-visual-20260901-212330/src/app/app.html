@@ -1,0 +1,7 @@
+<div class="app-shell">
+  <header class="topbar"><a class="brand" routerLink="/carteiras">Carteira<span>+</span></a><button class="menu-button" type="button" (click)="menuOpen.update(value => !value)" [attr.aria-expanded]="menuOpen()" aria-label="Abrir menu de navegação">☰</button></header>
+  <aside class="sidebar" [class.open]="menuOpen()"><a class="brand sidebar-brand" routerLink="/carteiras">Carteira<span>+</span></a><nav aria-label="Navegação principal">
+    <a routerLink="/dashboard" routerLinkActive="active" (click)="menuOpen.set(false)"><span>◈</span> Visão geral</a><a routerLink="/carteiras" routerLinkActive="active" (click)="menuOpen.set(false)"><span>▣</span> Minhas carteiras</a><a routerLink="/acoes" routerLinkActive="active" (click)="menuOpen.set(false)"><span>↗</span> Ações</a><a routerLink="/corretoras" routerLinkActive="active" (click)="menuOpen.set(false)"><span>◉</span> Corretoras</a>
+  </nav><div class="sidebar-footer"><strong>Precisa de ajuda?</strong><span>Organize seus investimentos com dados reais.</span></div></aside>
+  <main class="content"><router-outlet /></main>
+</div><section class="toasts" aria-live="polite">@for (toast of notifications.notifications(); track toast.id) { <button type="button" class="toast" [class]="toast.tone" (click)="notifications.dismiss(toast.id)">{{ toast.message }}</button> }</section>

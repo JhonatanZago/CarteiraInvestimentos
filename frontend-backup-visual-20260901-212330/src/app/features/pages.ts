@@ -262,12 +262,11 @@ export class AcoesPage {
   template: ` <section class="page">
     <header class="page-header">
       <div>
-        <h1>Minhas carteiras</h1>
+        <h1>Carteiras</h1>
         <p class="muted">Posições e resultados são calculados no backend.</p>
       </div>
     </header>
-    <section class="panel portfolio-form-card">
-      <h2>Nova carteira</h2>
+    <section class="panel">
       <form [formGroup]="portfolioForm" (ngSubmit)="savePortfolio()">
         <input
           formControlName="nome"
@@ -282,7 +281,7 @@ export class AcoesPage {
         ><button class="secondary" type="button" (click)="clearEditing()">Limpar</button>
       </form>
     </section>
-    <section class="grid portfolio-layout" style="grid-template-columns: minmax(15rem, .6fr) minmax(0, 1.4fr)">
+    <section class="grid" style="grid-template-columns: minmax(15rem, .6fr) minmax(0, 1.4fr)">
       <section class="panel">
         @if (loading()) {
           <app-loading />
@@ -302,8 +301,7 @@ export class AcoesPage {
       <section class="panel">
         @if (selected()) {
           <h2>{{ selected()!.nome }}</h2>
-          <a [routerLink]="['/dashboard', selected()!.id]">Abrir visão geral</a>
-          <h2>Adicionar posição</h2>
+          <a [routerLink]="['/dashboard', selected()!.id]">Abrir dashboard</a>
           <form [formGroup]="positionForm" (ngSubmit)="savePosition()">
             <input
               type="number"

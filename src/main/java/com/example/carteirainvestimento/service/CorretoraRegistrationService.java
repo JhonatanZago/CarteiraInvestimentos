@@ -6,6 +6,8 @@ import java.time.ZoneOffset;
 import com.example.carteirainvestimento.domain.Corretora;
 import com.example.carteirainvestimento.dto.corretora.CorretoraCreateRequest;
 import com.example.carteirainvestimento.exception.BusinessRuleException;
+import com.example.carteirainvestimento.exception.ExternalIntegrationException;
+import com.example.carteirainvestimento.exception.ResourceNotFoundException;
 import com.example.carteirainvestimento.exception.DuplicateResourceException;
 import com.example.carteirainvestimento.integration.adapter.EmpresaAdapter;
 import com.example.carteirainvestimento.integration.adapter.EnderecoAdapter;
@@ -46,12 +48,24 @@ public class CorretoraRegistrationService {
             throw new DuplicateResourceException("CNPJ ja cadastrado");
         }
 
-        EmpresaConsulta empresa = empresaAdapter.buscarPorCnpj(cnpj);
-        if (!"ATIVA".equalsIgnoreCase(empresa.situacaoCadastral())) {
-            throw new BusinessRuleException("Empresa nao esta ativa");
+        EmpresaConsulta empresa;
+        EnderecoConsulta endereco;
+        InstituicaoFinanceiraConsulta instituicao;
+        boolean pendente = false;
+        try {
+            empresa = empresaAdapter.buscarPorCnpj(cnpj);
+            if (!"ATIVA".equalsIgnoreCase(empresa.situacaoCadastral())) {
+                throw new BusinessRuleException("Empresa nao esta ativa");
+            }
+            endereco = enderecoAdapter.buscarPorCep(DocumentoNormalizer.cep(request.cep()));
+            instituicao = instituicaoFinanceiraFacade.validarPorCnpj(cnpj);
+        } catch (ExternalIntegrationException | ResourceNotFoundException externalFailure) {
+            // O cadastro continua pendente quando os provedores externos estão indisponíveis.
+            pendente = true;
+            empresa = new EmpresaConsulta(cnpj, "Corretora pendente de validação", null, null, null, "PENDENTE");
+            endereco = new EnderecoConsulta(DocumentoNormalizer.cep(request.cep()), null, null, null, null);
+            instituicao = new InstituicaoFinanceiraConsulta(false, "PENDENTE_VALIDACAO", null);
         }
-        EnderecoConsulta endereco = enderecoAdapter.buscarPorCep(DocumentoNormalizer.cep(request.cep()));
-        InstituicaoFinanceiraConsulta instituicao = instituicaoFinanceiraFacade.validarPorCnpj(cnpj);
 
         Corretora corretora = new Corretora();
         corretora.setCnpj(cnpj);
@@ -67,7 +81,7 @@ public class CorretoraRegistrationService {
         corretora.setCidade(endereco.cidade());
         corretora.setUf(endereco.uf());
         corretora.setSituacaoCadastral(empresa.situacaoCadastral());
-        corretora.setValidadaMercadoFinanceiro(true);
+        corretora.setValidadaMercadoFinanceiro(!pendente);
         corretora.setDataValidacaoMercado(instituicao.dataHoraValidacao());
         corretora.setFonteValidacaoMercado(instituicao.fonte());
         corretora.setDataCadastro(OffsetDateTime.now(ZoneOffset.UTC));

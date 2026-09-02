@@ -1,0 +1,802 @@
+﻿===== frontend\src\app\features\pages.ts =====
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { finalize } from 'rxjs';
+import {
+  AcoesApiService,
+  CarteirasApiService,
+  CorretorasApiService,
+  DashboardApiService,
+} from '../core/api/api.services';
+import {
+  Acao,
+  Carteira,
+  Corretora,
+  DashboardCarteira,
+  HistoricoCotacao,
+  Posicao,
+} from '../core/api/api.models';
+import { NotificationService } from '../core/feedback/notification.service';
+import {
+  ConfirmDialogComponent,
+  EmptyStateComponent,
+  LoadingComponent,
+} from '../shared/feedback.component';
+
+const money = (value: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+@Component({
+  standalone: true,
+  imports: [ReactiveFormsModule, EmptyStateComponent, LoadingComponent],
+  template: ` <section class="page">
+    <header class="page-header">
+      <div>
+        <h1>Corretoras</h1>
+        <p class="muted">Cadastro validado pelo backend.</p>
+      </div>
+      <input
+        aria-label="Consultar CNPJ"
+        #cnpj
+        placeholder="Consultar CNPJ"
+        (keyup.enter)="lookup(cnpj.value)"
+      />
+    </header>
+    <section class="panel">
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <label>CNPJ<input formControlName="cnpj" placeholder="00.000.000/0000-00" aria-label="CNPJ" inputmode="numeric" /></label><small class="help-text">Informe o CNPJ da instituiÃ§Ã£o.</small><input
+          formControlName="cep"
+          placeholder="00000-000" inputmode="numeric"
+          aria-label="CEP"
+        /><input formControlName="numero" placeholder="NÃºmero" aria-label="NÃºmero" /><input
+          formControlName="complemento"
+          placeholder="Complemento"
+          aria-label="Complemento"
+        /><button [disabled]="form.invalid || saving()">
+          {{ saving() ? 'Validandoâ€¦' : 'Cadastrar' }}
+        </button>
+      </form>
+    </section>
+    @if (loading()) {
+      <app-loading />
+    } @else if (!items().length) {
+      <app-empty-state title="Nenhuma corretora" detail="Cadastre uma instituiÃ§Ã£o para comeÃ§ar." />
+    } @else {
+      <section class="panel">
+        <table>
+          <thead>
+            <tr>
+              <th>InstituiÃ§Ã£o</th>
+              <th>CNPJ</th>
+              <th>SituaÃ§Ã£o</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of items(); track item.id) {
+              <tr>
+                <td>{{ item.razaoSocial }}</td>
+                <td>{{ item.cnpj }}</td>
+                <td>{{ item.validadaMercadoFinanceiro ? 'Validada' : 'Pendente' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+  </section>`,
+})
+export class CorretorasPage {
+  private readonly api = inject(CorretorasApiService);
+  private readonly fb = inject(FormBuilder);
+  private readonly notice = inject(NotificationService);
+  readonly items = signal<Corretora[]>([]);
+  readonly loading = signal(true);
+  readonly saving = signal(false);
+  readonly error = signal('');
+  readonly form = this.fb.nonNullable.group({
+    cnpj: ['', Validators.required],
+    cep: ['', Validators.required],
+    numero: ['', Validators.required],
+    complemento: [''],
+  });
+  constructor() {
+    this.load();
+  }
+  load(): void {
+    this.loading.set(true);
+    this.api
+      .list()
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe((page) => this.items.set(page.content));
+  }
+  save(): void {
+    if (!this.form.valid || this.saving()) return;
+    this.saving.set(true);
+    this.error.set('');
+    this.api
+      .create({ ...this.form.getRawValue(), cnpj: this.form.controls.cnpj.value.replace(/\D/g, ''), cep: this.form.controls.cep.value.replace(/\D/g, '') })
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({ next: () => {
+        this.notice.show('Corretora cadastrada.', 'success');
+        this.form.reset({ cnpj: '', cep: '', numero: '', complemento: '' });
+        this.load();
+      }, error: () => this.error.set('NÃ£o foi possÃ­vel cadastrar a corretora. Confira os dados e tente novamente.') });
+  }
+  lookup(cnpj: string): void {
+    if (cnpj)
+      this.api.getByCnpj(cnpj).subscribe((item) => {
+        this.items.set([item]);
+        this.notice.show('Corretora localizada.', 'success');
+      });
+  }
+}
+
+@Component({
+  standalone: true,
+  imports: [ReactiveFormsModule, RouterLink, EmptyStateComponent, LoadingComponent],
+  template: ` <section class="page">
+    <header class="page-header">
+      <div>
+        <h1>Ativos</h1>
+        <p class="muted">Acompanhe cotaÃ§Ãµes e encontre oportunidades para sua carteira.</p>
+      </div>
+      <input
+        aria-label="Consultar ticker"
+        #tickerLookup
+        placeholder="Consultar ticker"
+        (keyup.enter)="lookup(tickerLookup.value)"
+      />
+    </header>
+    <section class="panel">
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <label>Ticker<input formControlName="ticker" placeholder="Ex.: PETR4" aria-label="Ticker" /></label><small class="help-text">CÃ³digo de negociaÃ§Ã£o do ativo na bolsa.</small><select
+          formControlName="mercado"
+          aria-label="Mercado"
+        >
+          <option value="BRASIL">Brasil</option>
+          <option value="EUA">Estados Unidos</option></select><small class="help-text">Brasil: B3. EUA: aÃ§Ãµes americanas.</small
+        ><button [disabled]="form.invalid || saving()">
+          {{ saving() ? 'Cadastrandoâ€¦' : 'Cadastrar aÃ§Ã£o' }}
+        </button>
+      </form>
+    </section>
+    @if (loading()) {
+      <app-loading />
+    } @else if (!items().length) {
+      <app-empty-state title="Nenhuma aÃ§Ã£o" detail="Cadastre uma aÃ§Ã£o para consultar cotaÃ§Ãµes." />
+    } @else {
+      <section class="panel">
+        <table>
+          <thead>
+            <tr>
+              <th>Ticker</th>
+              <th>Empresa</th>
+              <th>CotaÃ§Ã£o</th>
+              <th>AÃ§Ãµes</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of items(); track item.id) {
+              <tr>
+                <td>
+                  <a [routerLink]="['/historico', item.id]">{{ item.ticker }}</a>
+                </td>
+                <td>{{ item.nomeEmpresa }}</td>
+                <td>{{ money(item.cotacaoAtual) }}</td>
+                <td>
+                  <button
+                    class="secondary"
+                    [disabled]="refreshing() === item.id"
+                    (click)="refresh(item)"
+                  >
+                    Atualizar
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+  </section>`,
+})
+export class AcoesPage {
+  private readonly api = inject(AcoesApiService);
+  private readonly fb = inject(FormBuilder);
+  private readonly notice = inject(NotificationService);
+  readonly money = money;
+  readonly error = signal('');
+  readonly items = signal<Acao[]>([]);
+  readonly loading = signal(true);
+  readonly saving = signal(false);
+  readonly refreshing = signal<number | null>(null);
+  readonly form = this.fb.nonNullable.group({
+    ticker: ['', Validators.required],
+    mercado: ['BRASIL' as 'BRASIL' | 'EUA', Validators.required],
+  });
+  constructor() {
+    this.load();
+  }
+  load(): void {
+    this.loading.set(true);
+    this.api
+      .list()
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe((page) => this.items.set(page.content));
+  }
+  save(): void {
+    if (!this.form.valid || this.saving()) return;
+    this.saving.set(true);
+    this.api
+      .create({ ...this.form.getRawValue(), ticker: this.form.controls.ticker.value.trim().toUpperCase() })
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({ next: () => {
+        this.notice.show('AÃ§Ã£o cadastrada.', 'success');
+        this.form.reset({ ticker: '', mercado: 'BRASIL' });
+        this.load();
+      }, error: () => this.error.set('NÃ£o foi possÃ­vel cadastrar a aÃ§Ã£o. Confira o ticker e tente novamente.') });
+  }
+  lookup(ticker: string): void {
+    if (ticker) this.api.getByTicker(ticker).subscribe((item) => this.items.set([item]));
+  }
+  refresh(item: Acao): void {
+    this.refreshing.set(item.id);
+    this.api
+      .refresh(item.id)
+      .pipe(finalize(() => this.refreshing.set(null)))
+      .subscribe(() => {
+        this.notice.show('CotaÃ§Ã£o atualizada.', 'success');
+        this.load();
+      });
+  }
+}
+
+@Component({
+  standalone: true,
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    EmptyStateComponent,
+    LoadingComponent,
+    ConfirmDialogComponent,
+  ],
+  template: ` <section class="page">
+    <header class="page-header">
+      <div>
+        <h1>Carteiras</h1>
+        <p class="muted">PosiÃ§Ãµes e resultados sÃ£o calculados no backend.</p>
+      </div>
+    </header>
+    <section class="panel">
+      <form [formGroup]="portfolioForm" (ngSubmit)="savePortfolio()">
+        <input
+          formControlName="nome"
+          placeholder="Nome da carteira"
+          aria-label="Nome da carteira"
+        /><input
+          formControlName="descricao"
+          placeholder="DescriÃ§Ã£o"
+          aria-label="DescriÃ§Ã£o"
+        /><button [disabled]="portfolioForm.invalid || saving()">
+          {{ editing() ? 'Salvar alteraÃ§Ãµes' : 'Criar carteira' }}</button
+        ><button class="secondary" type="button" (click)="clearEditing()">Limpar</button>
+      </form>
+    </section>
+    <section class="grid" style="grid-template-columns: minmax(15rem, .6fr) minmax(0, 1.4fr)">
+      <section class="panel">
+        @if (loading()) {
+          <app-loading />
+        } @else if (!portfolios().length) {
+          <app-empty-state title="Nenhuma carteira" />
+        } @else {
+          @for (item of portfolios(); track item.id) {
+            <p>
+              <button class="secondary" (click)="select(item)">{{ item.nome }}</button>
+              <button class="danger" aria-label="Excluir carteira" (click)="requestDelete(item)">
+                Excluir
+              </button>
+            </p>
+          }
+        }
+      </section>
+      <section class="panel">
+        @if (selected()) {
+          <h2>{{ selected()!.nome }}</h2>
+          <a [routerLink]="['/dashboard', selected()!.id]">Abrir dashboard</a>
+          <form [formGroup]="positionForm" (ngSubmit)="savePosition()">
+            <input
+              type="number"
+              formControlName="acaoId"
+              placeholder="ID aÃ§Ã£o"
+              aria-label="ID aÃ§Ã£o"
+            /><input
+              type="number"
+              formControlName="corretoraId"
+              placeholder="ID corretora"
+              aria-label="ID corretora"
+            /><input
+              type="number"
+              formControlName="quantidade"
+              placeholder="Quantidade"
+              aria-label="Quantidade"
+            /><input
+              type="number"
+              formControlName="precoMedio"
+              placeholder="PreÃ§o mÃ©dio"
+              aria-label="PreÃ§o mÃ©dio"
+            /><input
+              type="date"
+              formControlName="dataPrimeiraCompra"
+              aria-label="Data da compra"
+            /><button [disabled]="positionForm.invalid || saving()">
+              {{ editingPosition() ? 'Salvar posiÃ§Ã£o' : 'Adicionar posiÃ§Ã£o' }}
+            </button>
+          </form>
+          @if (!positions().length) {
+            <app-empty-state title="Sem posiÃ§Ãµes" detail="Adicione uma posiÃ§Ã£o a esta carteira." />
+          } @else {
+            <table>
+              <thead>
+                <tr>
+                  <th>Ativo</th>
+                  <th>Atual</th>
+                  <th>Resultado</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (position of positions(); track position.id) {
+                  <tr>
+                    <td>
+                      {{ position.ticker }}<small> {{ position.quantidade }} un.</small>
+                    </td>
+                    <td>{{ money(position.valorAtual) }}</td>
+                    <td
+                      [class.positive]="position.resultado >= 0"
+                      [class.negative]="position.resultado < 0"
+                    >
+                      {{ money(position.resultado) }}
+                    </td>
+                    <td>
+                      <button class="secondary" (click)="editPosition(position)">Editar</button>
+                      <button class="danger" (click)="removePosition(position)">Excluir</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        } @else {
+          <app-empty-state
+            title="Selecione uma carteira"
+            detail="Escolha uma carteira para gerenciar as posiÃ§Ãµes."
+          />
+        }
+      </section>
+    </section>
+    <app-confirm-dialog
+      [open]="!!pendingDelete()"
+      title="Excluir carteira"
+      detail="A carteira sÃ³ pode ser removida sem posiÃ§Ãµes."
+      (cancelled)="pendingDelete.set(null)"
+      (confirmed)="deletePortfolio()"
+    />
+  </section>`,
+})
+export class CarteirasPage {
+  private readonly api = inject(CarteirasApiService);
+  private readonly acoesApi = inject(AcoesApiService);
+  private readonly corretorasApi = inject(CorretorasApiService);
+  private readonly fb = inject(FormBuilder);
+  private readonly notice = inject(NotificationService);
+  readonly error = signal('');
+  readonly money = money;
+  readonly acoes = signal<Acao[]>([]);
+  readonly corretoras = signal<Corretora[]>([]);
+  readonly portfolios = signal<Carteira[]>([]);
+  readonly positions = signal<Posicao[]>([]);
+  readonly selected = signal<Carteira | null>(null);
+  readonly editing = signal<Carteira | null>(null);
+  readonly editingPosition = signal<Posicao | null>(null);
+  readonly pendingDelete = signal<Carteira | null>(null);
+  readonly loading = signal(true);
+  readonly saving = signal(false);
+  readonly portfolioForm = this.fb.nonNullable.group({
+    nome: ['', Validators.required],
+    descricao: [''],
+  });
+  readonly positionForm = this.fb.group({
+    acaoId: this.fb.control<number | null>(null, Validators.required),
+    corretoraId: this.fb.control<number | null>(null, Validators.required),
+    quantidade: this.fb.control<number | null>(null, [
+      Validators.required,
+      Validators.min(0.000001),
+    ]),
+    precoMedio: this.fb.control<number | null>(null, [Validators.required, Validators.min(0.01)]),
+    dataPrimeiraCompra: this.fb.control<string | null>(null, Validators.required),
+  });
+  constructor() {
+    this.load();
+    this.acoesApi.list(0, 100).subscribe((page) => this.acoes.set(page.content));
+    this.corretorasApi.list(0, 100).subscribe((page) => this.corretoras.set(page.content));
+  }
+  load(): void {
+    this.loading.set(true);
+    this.api
+      .list()
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe((page) => this.portfolios.set(page.content));
+  }
+  savePortfolio(): void {
+    if (!this.portfolioForm.valid || this.saving()) return;
+    const current = this.editing();
+    this.saving.set(true);
+    const request = current
+      ? this.api.update(current.id, this.portfolioForm.getRawValue())
+      : this.api.create(this.portfolioForm.getRawValue());
+    request.pipe(finalize(() => this.saving.set(false))).subscribe({ next: () => {
+      this.notice.show('Carteira salva.', 'success');
+      this.clearEditing();
+      this.load();
+    }, error: () => this.error.set('NÃ£o foi possÃ­vel salvar a carteira. Confira os dados e tente novamente.') });
+  }
+  select(item: Carteira): void {
+    this.selected.set(item);
+    this.editing.set(item);
+    this.portfolioForm.setValue({ nome: item.nome, descricao: item.descricao ?? '' });
+    this.loadPositions();
+  }
+  clearEditing(): void {
+    this.editing.set(null);
+    this.portfolioForm.reset({ nome: '', descricao: '' });
+  }
+  loadPositions(): void {
+    const item = this.selected();
+    if (item)
+      this.api.listPositions(item.id).subscribe((positions) => this.positions.set(positions));
+  }
+  savePosition(): void {
+    const portfolio = this.selected();
+    const value = this.positionForm.getRawValue();
+    if (
+      !portfolio ||
+      !this.positionForm.valid ||
+      this.saving() ||
+      value.acaoId === null ||
+      value.corretoraId === null ||
+      value.quantidade === null ||
+      value.precoMedio === null ||
+      value.dataPrimeiraCompra === null
+    )
+      return;
+    this.saving.set(true);
+    const edit = this.editingPosition();
+    const requestBody = {
+      acaoId: value.acaoId,
+      corretoraId: value.corretoraId,
+      quantidade: value.quantidade,
+      precoMedio: value.precoMedio,
+      dataPrimeiraCompra: value.dataPrimeiraCompra,
+    };
+    const request = edit
+      ? this.api.updatePosition(portfolio.id, edit.id, requestBody)
+      : this.api.createPosition(portfolio.id, requestBody);
+    request.pipe(finalize(() => this.saving.set(false))).subscribe(() => {
+      this.notice.show('PosiÃ§Ã£o salva.', 'success');
+      this.editingPosition.set(null);
+      this.positionForm.reset({
+        acaoId: null,
+        corretoraId: null,
+        quantidade: null,
+        precoMedio: null,
+        dataPrimeiraCompra: null,
+      });
+      this.loadPositions();
+    });
+  }
+  editPosition(item: Posicao): void {
+    this.editingPosition.set(item);
+    this.positionForm.setValue({
+      acaoId: item.acaoId,
+      corretoraId: item.corretoraId,
+      quantidade: item.quantidade,
+      precoMedio: item.precoMedio,
+      dataPrimeiraCompra: item.dataPrimeiraCompra,
+    });
+  }
+  removePosition(item: Posicao): void {
+    const portfolio = this.selected();
+    if (portfolio)
+      this.api.deletePosition(portfolio.id, item.id).subscribe(() => {
+        this.notice.show('PosiÃ§Ã£o removida.', 'success');
+        this.loadPositions();
+      });
+  }
+  requestDelete(item: Carteira): void {
+    this.pendingDelete.set(item);
+  }
+  deletePortfolio(): void {
+    const item = this.pendingDelete();
+    if (item)
+      this.api.delete(item.id).subscribe(() => {
+        this.notice.show('Carteira removida.', 'success');
+        this.pendingDelete.set(null);
+        if (this.selected()?.id === item.id) this.selected.set(null);
+        this.load();
+      });
+  }
+}
+
+@Component({
+  standalone: true,
+  imports: [ReactiveFormsModule, EmptyStateComponent, LoadingComponent],
+  template: ` <section class="page">
+    <header class="page-header">
+      <div>
+        <h1>HistÃ³rico de cotaÃ§Ã£o</h1>
+        <p class="muted">Pontos retornados pela API, do mais recente ao mais antigo.</p>
+      </div>
+    </header>
+    <section class="panel">
+      <form [formGroup]="form" (ngSubmit)="load()">
+        <input
+          type="number"
+          formControlName="acaoId"
+          placeholder="ID da aÃ§Ã£o"
+          aria-label="ID da aÃ§Ã£o"
+        /><button [disabled]="form.invalid || loading()">Consultar</button>
+      </form>
+    </section>
+    @if (loading()) {
+      <app-loading />
+    } @else if (!items().length) {
+      <app-empty-state
+        title="Sem histÃ³rico disponÃ­vel"
+        detail="A tabela serÃ¡ exibida quando houver cotaÃ§Ãµes armazenadas."
+      />
+    } @else {
+      <section class="panel">
+        <div class="chart" aria-label="GrÃ¡fico de histÃ³rico de cotaÃ§Ã£o">
+          @for (item of items(); track item.id) {
+            <div
+              class="bar"
+              [style.height.%]="height(item.valor)"
+              [title]="item.dataHoraCotacao + ': ' + item.valor"
+            ></div>
+          }
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Valor</th>
+              <th>Fonte</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of items(); track item.id) {
+              <tr>
+                <td>{{ item.dataHoraCotacao }}</td>
+                <td>{{ money(item.valor) }}</td>
+                <td>{{ item.fonte }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+  </section>`,
+})
+export class HistoricoPage {
+  private readonly api = inject(AcoesApiService);
+  private readonly fb = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
+  readonly money = money;
+  readonly items = signal<HistoricoCotacao[]>([]);
+  readonly loading = signal(false);
+  readonly form = this.fb.nonNullable.group({ acaoId: [0, Validators.min(1)] });
+  readonly max = computed(() => Math.max(...this.items().map((item) => item.valor), 1));
+  constructor() {
+    const id = Number(this.route.snapshot.paramMap.get('acaoId'));
+    if (id > 0) {
+      this.form.controls.acaoId.setValue(id);
+      this.load();
+    }
+  }
+  height(value: number): number {
+    return Math.max(5, (value / this.max()) * 100);
+  }
+  load(): void {
+    if (!this.form.valid) return;
+    this.loading.set(true);
+    this.api
+      .history(this.form.controls.acaoId.value)
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe((items) => this.items.set(items));
+  }
+}
+
+@Component({
+  standalone: true,
+  imports: [ReactiveFormsModule, EmptyStateComponent, LoadingComponent],
+  template: ` <section class="page">
+    <header class="page-header">
+      <div>
+        <h1>Dashboard</h1>
+        <p class="muted">Indicadores consolidados calculados pelo backend.</p>
+      </div>
+    </header>
+    <section class="panel">
+      <form [formGroup]="form" (ngSubmit)="load()">
+        <input
+          type="number"
+          formControlName="carteiraId"
+          placeholder="ID da carteira"
+          aria-label="ID da carteira"
+        /><button [disabled]="form.invalid || loading()">Consultar</button>
+      </form>
+    </section>
+    @if (loading()) {
+      <app-loading />
+    } @else if (data(); as dashboard) {
+      <section class="metrics grid">
+        <article class="metric">
+          <span>Investido</span><strong>{{ money(dashboard.valorInvestido) }}</strong>
+        </article>
+        <article class="metric">
+          <span>Atual</span><strong>{{ money(dashboard.valorAtual) }}</strong>
+        </article>
+        <article class="metric">
+          <span>Resultado</span
+          ><strong
+            [class.positive]="dashboard.resultado >= 0"
+            [class.negative]="dashboard.resultado < 0"
+            >{{ money(dashboard.resultado) }}</strong
+          >
+        </article>
+        <article class="metric">
+          <span>Rentabilidade</span><strong>{{ dashboard.rentabilidadePercentual }}%</strong>
+        </article>
+      </section>
+      <section class="panel">
+        <h2>ComposiÃ§Ã£o ({{ dashboard.quantidadeAtivos }} ativos)</h2>
+        <p class="muted">Ãšltima atualizaÃ§Ã£o: {{ dashboard.ultimaAtualizacao ?? 'indisponÃ­vel' }}</p>
+        @if (!dashboard.composicao.length) {
+          <app-empty-state title="Carteira sem posiÃ§Ãµes" />
+        } @else {
+          <table>
+            <thead>
+              <tr>
+                <th>Ativo</th>
+                <th>Investido</th>
+                <th>Atual</th>
+                <th>Resultado</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of dashboard.composicao; track item.posicaoId) {
+                <tr>
+                  <td>{{ item.ticker }}</td>
+                  <td>{{ money(item.valorInvestido) }}</td>
+                  <td>{{ money(item.valorAtual) }}</td>
+                  <td [class.positive]="item.resultado >= 0" [class.negative]="item.resultado < 0">
+                    {{ money(item.resultado) }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </section>
+    } @else {
+      <app-empty-state
+        title="Consulte uma carteira"
+        detail="Informe o identificador para visualizar os indicadores."
+      />
+    }
+  </section>`,
+})
+export class DashboardPage {
+  private readonly api = inject(DashboardApiService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly fb = inject(FormBuilder);
+  readonly money = money;
+  readonly data = signal<DashboardCarteira | null>(null);
+  readonly loading = signal(false);
+  readonly form = this.fb.nonNullable.group({ carteiraId: [0, Validators.min(1)] });
+  constructor() {
+    const id = Number(this.route.snapshot.paramMap.get('carteiraId'));
+    if (id > 0) {
+      this.form.controls.carteiraId.setValue(id);
+      this.load();
+    }
+  }
+  load(): void {
+    if (!this.form.valid) return;
+    this.loading.set(true);
+    this.api
+      .getPortfolio(this.form.controls.carteiraId.value)
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe((data) => this.data.set(data));
+  }
+}
+
+===== frontend\src\app\features\insights-dashboard.page.ts =====
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { catchError, finalize, forkJoin, of } from 'rxjs';
+import { CarteirasApiService, DashboardApiService, InsightsApiService } from '../core/api/api.services';
+import { Carteira, DashboardCarteira, IncomeSummary, MarketIndicator, PortfolioEvolutionPoint } from '../core/api/api.models';
+import { EmptyStateComponent } from '../shared/feedback.component';
+import { HttpContext } from '@angular/common/http';
+import { SILENT_HTTP_ERROR } from '../core/api/silent-http-error';
+
+const money = (value: number | null | undefined) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value ?? 0);
+const percent = (value: number | null | undefined) => `${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value ?? 0)}%`;
+
+@Component({
+  standalone: true,
+  imports: [EmptyStateComponent, FormsModule, RouterLink],
+  template: `
+<section class="page dashboard-page">
+  <header class="page-header dashboard-header"><div><p class="eyebrow">Carteira de investimentos</p><h1>VisÃ£o geral</h1><p class="muted">Dados financeiros calculados e normalizados pelo backend.</p></div>
+    <div class="dashboard-actions"><label>Carteira <select [ngModel]="selectedId()" (ngModelChange)="changePortfolio($event)" [disabled]="portfoliosUnavailable()"><option [ngValue]="0" disabled>Selecione uma carteira</option>@for (portfolio of portfolios(); track portfolio.id) { <option [ngValue]="portfolio.id">{{ portfolio.nome }}</option> }</select></label><button type="button" class="secondary" (click)="refresh()" [disabled]="loading() || !selectedId()">Atualizar</button></div>
+  </header>
+  @if (portfoliosUnavailable()) { <p class="notice warning" role="status">NÃ£o foi possÃ­vel carregar a lista de carteiras. A carteira aberta continua disponÃ­vel.</p> }
+  @if (loading() && !dashboard()) {
+    <section class="skeleton-grid" aria-label="Carregando indicadores">@for (item of [1, 2, 3, 4]; track item) { <article class="skeleton-card"><i></i><i></i><i></i></article> }</section>
+  } @else if (mainError()) {
+    <section class="panel failure-state" role="alert"><h2>NÃ£o foi possÃ­vel carregar esta carteira.</h2><p>Verifique se a carteira existe e se o backend estÃ¡ respondendo na porta 8081.</p><button type="button" (click)="retry()">Tentar novamente</button></section>
+  } @else if (dashboard(); as data) {
+    @if (loading()) { <p class="notice" role="status">Atualizando dados da carteiraâ€¦</p> }
+    @if (hasSupplementaryFailure()) { <p class="notice warning" role="status">Alguns dados complementares estÃ£o indisponÃ­veis. O resumo financeiro continua atualizado.</p> }
+    <section class="hero-card"><div><span>PatrimÃ´nio atual</span><strong>{{ money(data.valorAtual) }}</strong><small>Atualizado em {{ data.ultimaAtualizacao || 'data nÃ£o informada' }}</small></div><a routerLink="/carteiras">Gerenciar carteira</a></section>
+    <section class="metrics grid" aria-label="Resumo financeiro"><article class="metric"><span>Resultado acumulado</span><strong [class.positive]="data.resultado >= 0" [class.negative]="data.resultado < 0">{{ money(data.resultado) }}</strong></article><article class="metric"><span>Rentabilidade</span><strong [class.positive]="data.rentabilidadePercentual >= 0" [class.negative]="data.rentabilidadePercentual < 0">{{ percent(data.rentabilidadePercentual) }}</strong></article><article class="metric"><span>Total investido</span><strong>{{ money(data.valorInvestido) }}</strong></article><article class="metric"><span>Ativos</span><strong>{{ data.quantidadeAtivos }}</strong></article></section>
+    <section class="dashboard-grid"><article class="panel evolution-panel"><h2>EvoluÃ§Ã£o patrimonial</h2>@if (evolution().length) { <svg viewBox="0 0 600 220" preserveAspectRatio="none" role="img" aria-label="EvoluÃ§Ã£o patrimonial"><defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#6c5ce7" stop-opacity=".35"/><stop offset="1" stop-color="#6c5ce7" stop-opacity="0"/></linearGradient></defs><polygon [attr.points]="areaPoints()" fill="url(#area)"/><polyline [attr.points]="chartPoints()" fill="none" stroke="#6c5ce7" stroke-width="4"/></svg> } @else { <app-empty-state title="Sem histÃ³rico disponÃ­vel" detail="Novos pontos serÃ£o exibidos quando houver dados armazenados."/> }</article>
+      <article class="panel allocation-panel"><h2>DistribuiÃ§Ã£o por ativo</h2>@if (topAllocation().length) { <div class="donut" [style.background]="donutBackground()" aria-label="DistribuiÃ§Ã£o por ativo"></div><ul class="allocation-list">@for (item of topAllocation(); track item.posicaoId; let index = $index) { <li><i [style.background]="colors[index % colors.length]"></i><span>{{ item.ticker }}</span><strong>{{ money(item.valorAtual) }}</strong></li>}</ul> } @else { <app-empty-state title="Carteira sem posiÃ§Ãµes" detail="Adicione uma aÃ§Ã£o e uma posiÃ§Ã£o para visualizar a distribuiÃ§Ã£o."/> }</article></section>
+    <section class="panel"><h2>PosiÃ§Ãµes consolidadas</h2>@if (data.composicao.length) { <div class="table-scroll"><table><thead><tr><th>Ativo</th><th>Classe</th><th>Investido</th><th>Atual</th><th>Resultado</th></tr></thead><tbody>@for (item of data.composicao; track item.posicaoId) { <tr><td><strong>{{ item.ticker }}</strong><small>{{ item.nomeEmpresa }}</small></td><td>{{ item.classificacaoAlocacao }}</td><td>{{ money(item.valorInvestido) }}</td><td>{{ money(item.valorAtual) }}</td><td [class.positive]="item.resultado >= 0" [class.negative]="item.resultado < 0">{{ money(item.resultado) }}</td></tr> }</tbody></table></div> } @else { <app-empty-state title="Carteira sem posiÃ§Ãµes" detail="Cadastre uma aÃ§Ã£o e adicione uma posiÃ§Ã£o Ã  carteira para acompanhar seus investimentos."/> }</section>
+    <section class="dashboard-grid"><article class="panel"><h2>Indicadores de mercado</h2>@if (indicators().length) { <div class="indicators">@for (item of indicators(); track item.codigo) { <div><small>{{ item.descricao }}</small><strong>{{ item.valor === null ? 'IndisponÃ­vel' : item.valor }}</strong><span class="muted">{{ item.disponibilidade === 'UNAVAILABLE' ? 'Fonte indisponÃ­vel' : item.referenciaEm || 'Sem referÃªncia' }}</span></div> }</div> } @else { <p class="muted">Indicadores de mercado indisponÃ­veis.</p> }</article><article class="panel"><h2>Proventos</h2>@if (income(); as summary) { @if (summary.disponibilidade === 'UNAVAILABLE') { <p class="muted">Dados de proventos indisponÃ­veis para esta carteira.</p> } @else { <p>Recebidos em 12 meses <strong>{{ money(summary.recebidosUltimosDozeMeses) }}</strong></p><p>PrÃ³ximos proventos <strong>{{ summary.proximosProventos === null ? 'IndisponÃ­vel' : money(summary.proximosProventos) }}</strong></p> } } @else { <p class="muted">Dados de proventos indisponÃ­veis para esta carteira.</p> }</article></section>
+  } @else { <app-empty-state title="Selecione uma carteira" detail="Escolha uma carteira para consultar seus investimentos."/> }
+</section>`,
+})
+export class InsightsDashboardPage {
+  readonly colors = ['#6c5ce7', '#00b894', '#0984e3', '#fdcb6e', '#e17055'];
+  private readonly dashboardApi = inject(DashboardApiService); private readonly insightsApi = inject(InsightsApiService); private readonly portfoliosApi = inject(CarteirasApiService); private readonly route = inject(ActivatedRoute); private readonly router = inject(Router);
+  readonly money = money; readonly percent = percent; readonly selectedId = signal(Number(this.route.snapshot.paramMap.get('carteiraId')) || 0); readonly portfolios = signal<Carteira[]>([]); readonly portfoliosUnavailable = signal(false); readonly dashboard = signal<DashboardCarteira | null>(null); readonly indicators = signal<MarketIndicator[]>([]); readonly evolution = signal<PortfolioEvolutionPoint[]>([]); readonly income = signal<IncomeSummary | null>(null); readonly loading = signal(false); readonly mainError = signal(false); readonly supplementaryFailures = signal({ indicators: false, evolution: false, income: false });
+  readonly hasSupplementaryFailure = computed(() => Object.values(this.supplementaryFailures()).some(Boolean));
+  readonly topAllocation = computed(() => this.dashboard()?.composicao ?? []);
+  readonly donutBackground = computed(() => { const items = this.topAllocation(); const total = items.reduce((sum, item) => sum + Math.max(item.valorAtual, 0), 0); if (!total) return '#edf0f7'; let start = 0; const stops = items.map((item, index) => { const end = start + Math.max(item.valorAtual, 0) / total * 100; const stop = `${this.colors[index % this.colors.length]} ${start}% ${end}%`; start = end; return stop; }); return `conic-gradient(${stops.join(',')})`; });
+  constructor() { this.loadPortfolios(); if (this.selectedId()) this.load(this.selectedId()); }
+  changePortfolio(id: number): void { if (!id || id === this.selectedId()) return; this.selectedId.set(id); void this.router.navigate(['/dashboard', id]); this.load(id); }
+  refresh(): void { if (this.selectedId()) this.load(this.selectedId()); }
+  retry(): void { this.refresh(); }
+  chartPoints(): string { const points = this.evolution(); if (!points.length) return ''; const values = points.map(point => point.valorAtual); const min = Math.min(...values); const range = Math.max(Math.max(...values) - min, 1); return points.map((point, index) => `${points.length === 1 ? 300 : index / (points.length - 1) * 600},${190 - (point.valorAtual - min) / range * 150}`).join(' '); }
+  areaPoints(): string { const points = this.chartPoints(); return points ? `0,220 ${points} 600,220` : ''; }
+  private loadPortfolios(): void { this.portfoliosApi.list(0, 100).pipe(catchError(() => { this.portfoliosUnavailable.set(true); return of({ content: [] } as { content: Carteira[] }); })).subscribe(page => { this.portfolios.set(page.content); const routeId = this.selectedId(); const valid = page.content.some(item => item.id === routeId); if (!valid && page.content.length) { const first = page.content[0].id; this.selectedId.set(first); void this.router.navigate(['/dashboard', first], { replaceUrl: true }); if (!this.dashboard()) this.load(first); } }); }
+  private load(id: number): void { this.loading.set(true); this.mainError.set(false); this.supplementaryFailures.set({ indicators: false, evolution: false, income: false }); const context = new HttpContext().set(SILENT_HTTP_ERROR, true); forkJoin({ dashboard: this.dashboardApi.getPortfolio(id, context), indicators: this.insightsApi.indicators(context).pipe(catchError(() => { this.supplementaryFailures.update(value => ({ ...value, indicators: true })); return of([]); })), evolution: this.insightsApi.evolution(id, context).pipe(catchError(() => { this.supplementaryFailures.update(value => ({ ...value, evolution: true })); return of([]); })), income: this.insightsApi.income(id, context).pipe(catchError(() => { this.supplementaryFailures.update(value => ({ ...value, income: true })); return of(null); })) }).pipe(finalize(() => this.loading.set(false))).subscribe({ next: data => { this.dashboard.set(data.dashboard); this.indicators.set(data.indicators); this.evolution.set(data.evolution); this.income.set(data.income); }, error: () => { this.dashboard.set(null); this.mainError.set(true); } }); }
+}
+
+===== frontend\src\app\features\position-table.page.ts =====
+import { Component, inject, signal } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { AcoesApiService, CarteirasApiService, CorretorasApiService } from '../core/api/api.services';
+import { Acao, Corretora, PageResponse, Posicao, PosicaoRequest } from '../core/api/api.models';
+import { EmptyStateComponent, LoadingComponent } from '../shared/feedback.component';
+const money=(v:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
+@Component({standalone:true,imports:[FormsModule,RouterLink,EmptyStateComponent,LoadingComponent],template:`<section class="page"><header class="page-header"><h1>PosiÃ§Ãµes</h1><a routerLink="/carteiras">Voltar</a></header><section class="panel"><h2>{{editingId?'Editar':'Nova'}} posiÃ§Ã£o</h2>@if(!acoes().length||!corretoras().length){<p class="notice warning">Cadastre aÃ§Ãµes e corretoras antes de adicionar posiÃ§Ãµes.</p>}<form (ngSubmit)="save()"><select [(ngModel)]="form.acaoId" name="acaoId" aria-label="AÃ§Ã£o" required><option [ngValue]="null">Selecione a aÃ§Ã£o</option>@for(a of acoes();track a.id){<option [ngValue]="a.id">{{a.ticker}} â€” {{a.nomeEmpresa}}</option>}</select><select [(ngModel)]="form.corretoraId" name="corretoraId" aria-label="Corretora" required><option [ngValue]="null">Selecione a corretora</option>@for(c of corretoras();track c.id){<option [ngValue]="c.id">{{c.razaoSocial}}</option>}</select><input [(ngModel)]="form.quantidade" name="quantidade" type="number" min="0.0001" aria-label="Quantidade" required><input [(ngModel)]="form.precoMedio" name="precoMedio" type="number" min="0.01" aria-label="PreÃ§o mÃ©dio" required><input [(ngModel)]="form.dataPrimeiraCompra" name="dataPrimeiraCompra" type="date" aria-label="Data da primeira compra" required><button [disabled]="!valid()||saving()">{{saving()?'Salvandoâ€¦':'Salvar'}}</button></form>@if(error()){<p role="alert" class="notice error">{{error()}}</p>}</section>@if(loading()){<app-loading/>}@else if(!result().content.length){<app-empty-state title="Nenhuma posiÃ§Ã£o" detail="Cadastre uma posiÃ§Ã£o para comeÃ§ar."/>}@else{<section class="panel"><div class="table-scroll"><table><tbody>@for(p of result().content;track p.id){<tr><td>{{p.ticker}}</td><td>{{broker(p.corretoraId)}}</td><td>{{money(p.valorAtual)}}</td><td><button (click)="edit(p)" [disabled]="deleting()">Editar</button><button (click)="remove(p)" [disabled]="deleting()">{{deleting()?'Excluindoâ€¦':'Excluir'}}</button></td></tr>}</tbody></table></div></section>}</section>`})
+export class PositionTablePage{private api=inject(CarteirasApiService);private actions=inject(AcoesApiService);private brokers=inject(CorretorasApiService);private route=inject(ActivatedRoute);private id=Number(this.route.snapshot.paramMap.get('carteiraId'));readonly acoes=signal<Acao[]>([]);readonly corretoras=signal<Corretora[]>([]);readonly result=signal<PageResponse<Posicao>>({content:[],page:0,size:20,totalElements:0,totalPages:0});readonly loading=signal(true);readonly saving=signal(false);readonly deleting=signal(false);readonly error=signal('');readonly money=money;editingId:number|null=null;form:PosicaoRequest={acaoId:null as any,corretoraId:null as any,quantidade:null as any,precoMedio:null as any,dataPrimeiraCompra:''};constructor(){this.actions.list(0,100).subscribe(p=>this.acoes.set(p.content));this.brokers.list(0,100).subscribe(p=>this.corretoras.set(p.content));this.load()}valid(){return!!this.form.acaoId&&!!this.form.corretoraId&&Number(this.form.quantidade)>0&&Number(this.form.precoMedio)>0&&!!this.form.dataPrimeiraCompra}load(){if(!this.id){this.loading.set(false);return}this.api.listPositionsPage(this.id).subscribe({next:r=>this.result.set(r),error:()=>this.error.set('Falha ao carregar posiÃ§Ãµes'),complete:()=>this.loading.set(false)})}save(){if(!this.valid()||this.saving())return;this.saving.set(true);const op=this.editingId?this.api.updatePosition(this.id,this.editingId,this.form):this.api.createPosition(this.id,this.form);op.subscribe({next:()=>{this.editingId=null;this.load()},error:()=>this.error.set('Falha ao salvar posiÃ§Ã£o'),complete:()=>this.saving.set(false)})}edit(p:Posicao){this.editingId=p.id;this.form={acaoId:p.acaoId,corretoraId:p.corretoraId,quantidade:p.quantidade,precoMedio:p.precoMedio,dataPrimeiraCompra:p.dataPrimeiraCompra}}remove(p:Posicao){if(!confirm('Excluir posiÃ§Ã£o?'))return;this.deleting.set(true);this.api.deletePosition(this.id,p.id).subscribe({next:()=>this.load(),error:()=>this.error.set('Falha ao excluir posiÃ§Ã£o'),complete:()=>this.deleting.set(false)})}broker(id:number){return this.corretoras().find(c=>c.id===id)?.razaoSocial??'â€”'}}
+
+===== frontend\src\styles.scss =====
+:root{--purple:#6c5ce7;--ink:#202037;--muted:#7b7c91;--border:#e8e9f1;--surface:#fff;--background:#f6f7fb;--positive:#00a67e;--negative:#d63031}*{box-sizing:border-box}body{margin:0;color:var(--ink);background:var(--background);font-family:Inter,ui-sans-serif,system-ui,sans-serif}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #a29bfe;outline-offset:2px}.page{max-width:1180px;margin:auto}.page-header{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;margin-bottom:1.5rem}.page h1{margin:0;font-size:clamp(1.7rem,3vw,2.35rem)}.page h2{margin-top:0;font-size:1.05rem}.eyebrow{margin:0 0 .35rem;color:var(--purple);font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.muted{color:var(--muted)}.panel,.metric,.hero-card{background:var(--surface);border:1px solid var(--border);border-radius:1rem;padding:1.25rem;box-shadow:0 8px 24px #2020370a}.grid{display:grid;gap:1rem}.metrics{grid-template-columns:repeat(4,minmax(0,1fr));margin:1rem 0}.metric span,.hero-card span{color:var(--muted);font-size:.85rem}.metric strong{display:block;font-size:1.35rem;margin-top:.45rem}.positive{color:var(--positive)}.negative{color:var(--negative)}.dashboard-actions{display:flex;align-items:end;gap:.65rem}.dashboard-actions label{display:grid;gap:.35rem;color:var(--muted);font-size:.82rem}.dashboard-actions select{min-width:13rem}input,select{min-width:8rem;border:1px solid #d9dbea;border-radius:.55rem;padding:.6rem .7rem;background:white}button{border:0;border-radius:.55rem;padding:.65rem .9rem;background:var(--purple);color:white}button[disabled]{opacity:.55;cursor:not-allowed}.secondary{background:#56566e}.danger{background:#b91c1c}.hero-card{display:flex;align-items:center;justify-content:space-between;gap:1rem;color:white;background:linear-gradient(125deg,#6c5ce7,#413b85);border:0}.hero-card strong{display:block;font-size:clamp(1.8rem,4vw,2.7rem);margin:.25rem 0}.hero-card small{color:#eeeaff}.hero-card a{color:white;font-weight:700}.dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin:1rem 0}.evolution-panel svg{width:100%;height:15rem;overflow:visible}.donut{width:9rem;aspect-ratio:1;border-radius:50%;margin:1rem auto;position:relative}.donut::after{content:'';position:absolute;inset:27%;border-radius:50%;background:white}.allocation-list{list-style:none;padding:0;margin:1rem 0 0;display:grid;gap:.55rem}.allocation-list li{display:grid;grid-template-columns:.8rem 1fr auto;align-items:center;gap:.5rem}.allocation-list i{width:.65rem;height:.65rem;border-radius:50%}.table-scroll{overflow-x:auto}table{width:100%;min-width:42rem;border-collapse:collapse}th,td{padding:.75rem;text-align:left;border-bottom:1px solid #eeeef4}td small{display:block;color:var(--muted);margin-top:.2rem}.indicators{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}.indicators div{padding:.75rem;border-radius:.65rem;background:#f8f8fc}.indicators small,.indicators strong,.indicators span{display:block}.indicators strong{margin:.25rem 0}.notice{padding:.75rem 1rem;border-radius:.65rem;background:#eceafe;color:#413b85;margin:0 0 1rem}.notice.warning{background:#fff5d7;color:#795c00}.failure-state{max-width:38rem;text-align:center;margin:3rem auto}.skeleton-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem}.skeleton-card{min-height:9rem;padding:1.25rem;background:white;border:1px solid var(--border);border-radius:1rem}.skeleton-card i{display:block;height:.8rem;margin:.7rem 0;border-radius:.5rem;background:linear-gradient(90deg,#edf0f7,#f8f9fc,#edf0f7);animation:pulse 1.2s infinite}.skeleton-card i:nth-child(2){width:75%;height:1.5rem}@keyframes pulse{50%{opacity:.45}}.loading,.empty-state{padding:1.5rem;text-align:center;color:var(--muted)}.dialog-backdrop{position:fixed;inset:0;display:grid;place-items:center;background:#20203766;z-index:4}.dialog{max-width:28rem;background:white;padding:1.5rem;border-radius:.75rem}.dialog button+button{margin-left:.5rem}@media(max-width:900px){.metrics,.skeleton-grid{grid-template-columns:repeat(2,1fr)}}.pagination{display:flex;gap:.75rem;align-items:center;margin-top:1rem}.collection-controls{display:flex;gap:.5rem;margin-bottom:1rem}@media(max-width:580px){.metrics,.skeleton-grid,.dashboard-grid,.indicators{grid-template-columns:1fr}.page-header,.dashboard-actions{align-items:stretch;flex-direction:column}.dashboard-actions select{width:100%}.hero-card{align-items:start;flex-direction:column}.page-header{margin-bottom:1rem}}
+
+===== frontend\src\app\shared\top-navigation.component.ts =====
+import { Component, signal } from '@angular/core';
+import { RouterLink, RouterLinkActive } from '@angular/router';
+
+@Component({ selector:'app-top-navigation', standalone:true, imports:[RouterLink,RouterLinkActive], template:`<header class="topbar"><a class="brand" routerLink="/dashboard">Carteira<span>+</span></a><nav class="main-nav" [class.open]="open()" aria-label="NavegaÃ§Ã£o principal"><a routerLink="/dashboard" routerLinkActive="active" (click)="open.set(false)">VisÃ£o geral</a><a routerLink="/carteiras" routerLinkActive="active" (click)="open.set(false)">Carteiras</a><a routerLink="/acoes" routerLinkActive="active" (click)="open.set(false)">Ativos</a><a routerLink="/corretoras" routerLinkActive="active" (click)="open.set(false)">Corretoras</a></nav><div class="topbar-actions"><span aria-label="NotificaÃ§Ãµes">â—”</span><span class="avatar" aria-label="UsuÃ¡rio">J</span><button class="menu-button" type="button" (click)="open.update(v=>!v)" [attr.aria-expanded]="open()" aria-label="Abrir menu">â˜°</button></div></header>` })
+export class TopNavigationComponent { readonly open=signal(false); }
+
+===== ARQUIVO NÃO ENCONTRADO: frontend\src\app\shared\top-navigation.component.scss =====
