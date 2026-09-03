@@ -1,5 +1,19 @@
 # Implantação com Angular, Nginx e Spring Boot
 
+## Docker com dados persistentes
+
+Para iniciar o backend e o PostgreSQL em containers:
+
+```powershell
+docker compose up --build -d
+```
+
+O banco utiliza o volume nomeado `carteira-investimentos-postgres-data`, montado em
+`/var/lib/postgresql/data`. Os dados permanecem após `docker compose down` e reinícios
+dos containers. Para removê-los deliberadamente, execute `docker compose down --volumes`.
+
+O backend ficará disponível em `http://localhost:8081` (ou na porta definida por `APP_PORT`).
+
 ## Desenvolvimento local
 
 Inicie o backend na porta `8081`:
