@@ -30,7 +30,7 @@ public class BrasilApiAdapter implements EmpresaAdapter {
         }
         try {
             BrasilApiEmpresaResponse response = client.get()
-                    .uri("/api/v1/cnpj/{cnpj}", cnpjNormalizado)
+                    .uri("/api/cnpj/v1/{cnpj}", cnpjNormalizado)
                     .retrieve()
                     .body(BrasilApiEmpresaResponse.class);
             if (response == null) {

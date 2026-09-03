@@ -13,6 +13,9 @@ public final class CalculadoraFinanceira {
 
     public static PosicaoFinanceira calcular(BigDecimal quantidade, BigDecimal precoMedio, BigDecimal cotacaoAtual) {
         BigDecimal valorInvestido = multiplicar(quantidade, precoMedio);
+        if (cotacaoAtual == null || cotacaoAtual.signum() <= 0) {
+            return new PosicaoFinanceira(monetario(valorInvestido), null, null, null);
+        }
         BigDecimal valorAtual = multiplicar(quantidade, cotacaoAtual);
         BigDecimal resultado = valorAtual.subtract(valorInvestido);
         BigDecimal rentabilidade = valorInvestido.signum() == 0

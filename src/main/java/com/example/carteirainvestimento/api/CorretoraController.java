@@ -54,4 +54,9 @@ public class CorretoraController {
     public CorretoraResponse getByCnpj(@PathVariable String cnpj) {
         return CorretoraMapper.toResponse(service.findByCnpj(cnpj.replaceAll("\\D", "")));
     }
+
+    @PostMapping("/{id}/revalidacao-empresarial")
+    public CorretoraResponse revalidar(@PathVariable Long id) {
+        return CorretoraMapper.toResponse(registrationService.revalidar(id));
+    }
 }

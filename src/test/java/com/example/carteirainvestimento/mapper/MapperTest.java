@@ -9,6 +9,7 @@ import com.example.carteirainvestimento.domain.Acao;
 import com.example.carteirainvestimento.domain.AtivoCarteira;
 import com.example.carteirainvestimento.domain.Carteira;
 import com.example.carteirainvestimento.domain.Corretora;
+import com.example.carteirainvestimento.domain.StatusValidacaoCorretora;
 import com.example.carteirainvestimento.domain.HistoricoCotacao;
 import com.example.carteirainvestimento.dto.acao.AcaoResponse;
 import com.example.carteirainvestimento.dto.carteira.AtivoCarteiraResponse;
@@ -43,7 +44,7 @@ class MapperTest {
         assertThat(CorretoraMapper.toResponse(corretora)).isEqualTo(new CorretoraResponse(
                 20L, "12345678000190", "Corretora S.A.", "Corretora", "contato@corretora.com", "11999999999",
                 "01001000", "Praça da Sé", "10", "Sala 1", "Sé", "São Paulo", "SP", "ATIVA", true,
-                NOW, "CVM", NOW));
+                NOW, "CVM", StatusValidacaoCorretora.VALIDADA, null, NOW));
     }
 
     @Test
@@ -116,6 +117,7 @@ class MapperTest {
         corretora.setUf("SP");
         corretora.setSituacaoCadastral("ATIVA");
         corretora.setValidadaMercadoFinanceiro(true);
+        corretora.setStatusValidacao(StatusValidacaoCorretora.VALIDADA);
         corretora.setDataValidacaoMercado(NOW);
         corretora.setFonteValidacaoMercado("CVM");
         corretora.setDataCadastro(NOW);

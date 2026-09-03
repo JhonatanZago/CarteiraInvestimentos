@@ -23,6 +23,7 @@ export class CorretorasApiService {
   }
   getById(id: number): Observable<Corretora> { return this.http.get<Corretora>(`${this.baseUrl}/corretoras/${id}`); }
   getByCnpj(cnpj: string): Observable<Corretora> { return this.http.get<Corretora>(`${this.baseUrl}/corretoras/cnpj/${cnpj}`); }
+  revalidate(id: number): Observable<Corretora> { return this.http.post<Corretora>(`${this.baseUrl}/corretoras/${id}/revalidacao-empresarial`, {}); }
 }
 
 @Injectable({ providedIn: 'root' })

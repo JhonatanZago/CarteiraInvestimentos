@@ -35,11 +35,13 @@ public class DashboardCarteiraService {
         BigDecimal valorInvestido = composicao.stream()
                 .map(ComposicaoCarteiraResponse::valorInvestido)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal valorAtual = composicao.stream()
-                .map(ComposicaoCarteiraResponse::valorAtual)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal resultado = valorAtual.subtract(valorInvestido);
-        PosicaoFinanceira totais = CalculadoraFinanceira.calcular(BigDecimal.ONE, valorInvestido, valorAtual);
+        boolean cotacoesDisponiveis = composicao.stream().allMatch(item -> item.valorAtual() != null);
+        BigDecimal valorAtual = cotacoesDisponiveis
+                ? composicao.stream().map(ComposicaoCarteiraResponse::valorAtual).reduce(BigDecimal.ZERO, BigDecimal::add)
+                : null;
+        PosicaoFinanceira totais = composicao.isEmpty()
+                ? new PosicaoFinanceira(BigDecimal.ZERO.setScale(2), BigDecimal.ZERO.setScale(2), BigDecimal.ZERO.setScale(2), BigDecimal.ZERO)
+                : CalculadoraFinanceira.calcular(BigDecimal.ONE, valorInvestido, valorAtual);
         OffsetDateTime ultimaAtualizacao = posicoes.stream()
                 .map(posicao -> posicao.getAcao().getDataHoraCotacao())
                 .filter(java.util.Objects::nonNull)

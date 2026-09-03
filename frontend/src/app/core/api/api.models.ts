@@ -32,6 +32,8 @@ export interface Corretora {
   uf?: string;
   situacaoCadastral?: string;
   validadaMercadoFinanceiro: boolean;
+  statusValidacao?: 'VALIDADA' | 'NAO_AUTORIZADA' | 'AGUARDANDO_VALIDACAO' | 'FONTE_INDISPONIVEL';
+  motivoValidacao?: string;
   dataValidacaoMercado?: string;
   fonteValidacaoMercado?: string;
   dataCadastro: string;
@@ -50,8 +52,8 @@ export interface Acao {
   nomeEmpresa: string;
   mercado: 'BRASIL' | 'EUA';
   moeda: string;
-  cotacaoAtual: number;
-  dataHoraCotacao: string;
+  cotacaoAtual: number | null;
+  dataHoraCotacao: string | null;
 }
 
 export interface AcaoCreateRequest {
@@ -95,9 +97,9 @@ export interface Posicao {
   cotacaoAtual: number | null;
   dataHoraCotacao: string | null;
   valorInvestido: number;
-  valorAtual: number;
-  resultado: number;
-  rentabilidadePercentual: number;
+  valorAtual: number | null;
+  resultado: number | null;
+  rentabilidadePercentual: number | null;
 }
 
 export interface PosicaoRequest {
@@ -111,9 +113,9 @@ export interface PosicaoRequest {
 export interface DashboardCarteira {
   carteiraId: number;
   valorInvestido: number;
-  valorAtual: number;
-  resultado: number;
-  rentabilidadePercentual: number;
+  valorAtual: number | null;
+  resultado: number | null;
+  rentabilidadePercentual: number | null;
   ultimaAtualizacao?: string;
   quantidadeAtivos: number;
   composicao: ComposicaoCarteira[];
@@ -130,9 +132,9 @@ export interface ComposicaoCarteira {
   cotacaoAtual: number | null;
   dataHoraCotacao: string | null;
   valorInvestido: number;
-  valorAtual: number;
-  resultado: number;
-  rentabilidadePercentual: number;
+  valorAtual: number | null;
+  resultado: number | null;
+  rentabilidadePercentual: number | null;
 }
 
 export type InsightAvailability = 'AVAILABLE' | 'STALE' | 'UNAVAILABLE';

@@ -72,7 +72,7 @@ class DashboardCarteiraServiceTest {
     }
 
     @Test
-    void calculaResultadoNegativoETrataCotacaoAusenteComoValorAtualZero() {
+    void calculaResultadoNegativoEMarcaTotaisComoIndisponiveisQuandoFaltaCotacao() {
         when(carteiras.existsById(1L)).thenReturn(true);
         when(ativos.findByCarteiraId(1L)).thenReturn(List.of(
                 posicao("2", "20", "15", OffsetDateTime.now(ZoneOffset.UTC)),
@@ -82,11 +82,11 @@ class DashboardCarteiraServiceTest {
         DashboardCarteiraResponse dashboard = service.calcular(1L);
 
         assertThat(dashboard.valorInvestido()).isEqualByComparingTo("80.00");
-        assertThat(dashboard.valorAtual()).isEqualByComparingTo("30.00");
-        assertThat(dashboard.resultado()).isEqualByComparingTo("-50.00");
-        assertThat(dashboard.rentabilidadePercentual()).isEqualByComparingTo("-62.5000");
-        assertThat(dashboard.composicao().get(2).valorAtual()).isEqualByComparingTo("0.00");
-        assertThat(dashboard.composicao().get(2).rentabilidadePercentual()).isEqualByComparingTo("-100.0000");
+        assertThat(dashboard.valorAtual()).isNull();
+        assertThat(dashboard.resultado()).isNull();
+        assertThat(dashboard.rentabilidadePercentual()).isNull();
+        assertThat(dashboard.composicao().get(2).valorAtual()).isNull();
+        assertThat(dashboard.composicao().get(2).rentabilidadePercentual()).isNull();
     }
 
     @Test

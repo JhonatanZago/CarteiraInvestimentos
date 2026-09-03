@@ -33,7 +33,7 @@ class BrasilApiAdapterTest {
 
     @Test
     void normalizesCnpjAndMapsCompanyResponse() {
-        server.expect(requestTo("https://brasil.test/api/v1/cnpj/12345678000195"))
+        server.expect(requestTo("https://brasil.test/api/cnpj/v1/12345678000195"))
                 .andExpect(method(GET))
                 .andRespond(withSuccess("""
                         {"razao_social":"Empresa S.A.","nome_fantasia":"Empresa","email":"contato@empresa.com",
@@ -50,7 +50,7 @@ class BrasilApiAdapterTest {
 
     @Test
     void translatesNotFound() {
-        server.expect(requestTo("https://brasil.test/api/v1/cnpj/12345678000195"))
+        server.expect(requestTo("https://brasil.test/api/cnpj/v1/12345678000195"))
                 .andRespond(withStatus(HttpStatus.NOT_FOUND));
 
         assertThatThrownBy(() -> adapter.buscarPorCnpj("12345678000195"))
@@ -59,13 +59,13 @@ class BrasilApiAdapterTest {
 
     @Test
     void translatesMalformedResponseAndUnavailableProvider() {
-        server.expect(requestTo("https://brasil.test/api/v1/cnpj/12345678000195"))
+        server.expect(requestTo("https://brasil.test/api/cnpj/v1/12345678000195"))
                 .andRespond(withSuccess("{invalido", MediaType.APPLICATION_JSON));
         assertThatThrownBy(() -> adapter.buscarPorCnpj("12345678000195"))
                 .isInstanceOf(ExternalIntegrationException.class);
 
         server.reset();
-        server.expect(requestTo("https://brasil.test/api/v1/cnpj/12345678000195"))
+        server.expect(requestTo("https://brasil.test/api/cnpj/v1/12345678000195"))
                 .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
         assertThatThrownBy(() -> adapter.buscarPorCnpj("12345678000195"))
                 .isInstanceOf(ExternalIntegrationException.class);

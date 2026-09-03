@@ -45,6 +45,12 @@ public class Corretora {
     @Column(nullable = false)
     private boolean validadaMercadoFinanceiro;
 
+    @jakarta.persistence.Enumerated(jakarta.persistence.EnumType.STRING)
+    @Column(length = 32)
+    private StatusValidacaoCorretora statusValidacao = StatusValidacaoCorretora.AGUARDANDO_VALIDACAO;
+
+    private String motivoValidacao;
+
     private OffsetDateTime dataValidacaoMercado;
     private String fonteValidacaoMercado;
 

@@ -23,8 +23,10 @@ import {
   LoadingComponent,
 } from '../shared/feedback.component';
 
-const money = (value: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+const money = (value: number | null) =>
+  value === null ? 'Indisponível' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+type TipoPreco = 'COTACAO_ATUAL' | 'PRECO_INFORMADO';
 
 @Component({
   standalone: true,
@@ -56,6 +58,7 @@ const money = (value: number) =>
           {{ saving() ? 'Validando…' : 'Cadastrar' }}
         </button>
       </form>
+      @if (error()) { <p role="alert" class="notice error">{{ error() }}</p> }
     </section>
     @if (loading()) {
       <app-loading />
@@ -66,17 +69,21 @@ const money = (value: number) =>
         <table>
           <thead>
             <tr>
+              <th>ID</th>
               <th>Instituição</th>
               <th>CNPJ</th>
               <th>Situação</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
             @for (item of items(); track item.id) {
               <tr>
-                <td>{{ item.razaoSocial }}</td>
+                <td><span class="internal-id-badge" title="Identificador interno da corretora">#{{ item.id }}</span></td>
+                <td><strong>{{ item.nomeFantasia || item.razaoSocial }}</strong><small>{{ item.razaoSocial }}</small><small>{{ item.cidade }}{{ item.uf ? '/' + item.uf : '' }}</small></td>
                 <td>{{ item.cnpj }}</td>
-                <td><span class="status-badge" [class.validated]="item.validadaMercadoFinanceiro" [class.pending]="!item.validadaMercadoFinanceiro">{{ item.validadaMercadoFinanceiro ? 'Validada' : 'Pendente' }}</span></td>
+                <td><span class="status-badge">{{ item.statusValidacao || (item.validadaMercadoFinanceiro ? 'VALIDADA' : 'AGUARDANDO_VALIDACAO') }}</span><small>{{ item.motivoValidacao }}</small></td>
+                <td><button type="button" (click)="revalidate(item)" [disabled]="revalidating() === item.id">{{ revalidating() === item.id ? 'Validando…' : 'Validar novamente' }}</button></td>
               </tr>
             }
           </tbody>
@@ -92,6 +99,7 @@ export class CorretorasPage {
   readonly items = signal<Corretora[]>([]);
   readonly loading = signal(true);
   readonly saving = signal(false);
+  readonly revalidating = signal<number | null>(null);
   readonly error = signal('');
   readonly form = this.fb.nonNullable.group({
     cnpj: ['', Validators.required],
@@ -102,6 +110,13 @@ export class CorretorasPage {
   constructor() {
     this.load();
   }
+  revalidate(item: Corretora): void {
+    this.revalidating.set(item.id);
+    this.api.revalidate(item.id).pipe(finalize(() => this.revalidating.set(null))).subscribe(updated => {
+      this.items.update(items => items.map(current => current.id === updated.id ? updated : current));
+      this.notice.show('Corretora revalidada.', 'success');
+    });
+  }
   load(): void {
     this.loading.set(true);
     this.api
@@ -109,6 +124,7 @@ export class CorretorasPage {
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe((page) => this.items.set(page.content));
   }
+
   save(): void {
     if (!this.form.valid || this.saving()) return;
     this.saving.set(true);
@@ -169,6 +185,7 @@ export class CorretorasPage {
         <table>
           <thead>
             <tr>
+              <th>ID</th>
               <th>Ticker</th>
               <th>Empresa</th>
               <th>Cotação</th>
@@ -178,6 +195,7 @@ export class CorretorasPage {
           <tbody>
             @for (item of items(); track item.id) {
               <tr>
+                <td><span class="internal-id-badge" title="Identificador interno do ativo">#{{ item.id }}</span></td>
                 <td>
                   <a class="ticker-badge" [routerLink]="['/historico', item.id]">{{ item.ticker }}</a>
                 </td>
@@ -299,51 +317,47 @@ export class AcoesPage {
           }
         }
       </section>
-      <section class="panel portfolio-detail-panel">
+      <section class="panel portfolio-detail-panel portfolio-detail">
         @if (selected()) {
           <header class="portfolio-detail-header"><span class="portfolio-initial">{{ selected()!.nome.charAt(0).toUpperCase() }}</span><div class="portfolio-detail-copy"><h2>{{ selected()!.nome }}</h2><p class="muted">{{ selected()!.descricao || 'Carteira de investimentos' }}</p></div><span class="selected-badge">Selecionada</span><a class="overview-link" [routerLink]="['/dashboard', selected()!.id]">Abrir visão geral</a></header>
           <hr class="section-divider"><h2>Adicionar posição</h2>
-          <form class="position-form-grid" [formGroup]="positionForm" (ngSubmit)="savePosition()">
-            <label>ID da ação<input
-              type="number"
-              formControlName="acaoId"
-              placeholder="ID ação"
-              aria-label="ID ação"
-            /></label><label>ID da corretora<input
-              type="number"
-              formControlName="corretoraId"
-              placeholder="ID corretora"
-              aria-label="ID corretora"
-            /></label><label>Quantidade<input
-              type="number"
-              formControlName="quantidade"
-              placeholder="Quantidade"
-              aria-label="Quantidade"
-            /></label><label>Preço médio<input
-              type="number"
-              formControlName="precoMedio"
-              placeholder="Preço médio"
-              aria-label="Preço médio"
-            /></label><label>Data da primeira compra<input
-              type="date"
-              formControlName="dataPrimeiraCompra"
-              aria-label="Data da compra"
-            /></label><button [disabled]="positionForm.invalid || saving()">
-              {{ editingPosition() ? 'Salvar posição' : 'Adicionar posição' }}
-            </button>
+          <form class="position-form" [formGroup]="positionForm" (ngSubmit)="savePosition()">
+            <div class="position-selectors">
+              <label class="form-field" for="acaoId">Ação<select id="acaoId" formControlName="acaoId" aria-label="Ação"><option [ngValue]="null">Selecione uma ação</option>@for (acao of acoes(); track acao.id) {<option [ngValue]="acao.id">#{{ acao.id }} — {{ acao.ticker }} — {{ acao.nomeEmpresa }}</option>}</select></label>
+              <label class="form-field" for="corretoraId">Corretora<select id="corretoraId" formControlName="corretoraId" aria-label="Corretora"><option [ngValue]="null">Selecione uma corretora</option>@for (corretora of corretoras(); track corretora.id) {<option [ngValue]="corretora.id">#{{ corretora.id }} — {{ corretora.nomeFantasia || corretora.razaoSocial }}</option>}</select></label>
+            </div>
+            @if (selectedAcao(); as acao) {
+              <section class="asset-quote-card">
+                <div><small>Ticker</small><strong>{{ acao.ticker }}</strong></div><div><small>Empresa</small><strong>{{ acao.nomeEmpresa }}</strong></div><div><small>Mercado</small><strong>{{ acao.mercado }}</strong></div>
+                @if (cotacaoDisponivel()) {<div><small>Cotação atual</small><strong>{{ money(acao.cotacaoAtual!) }}</strong></div><div><small>Atualização</small><strong>{{ acao.dataHoraCotacao || 'data indisponível' }}</strong></div>} @else {<div class="asset-quote-unavailable">Cotação atual indisponível. Não foi possível calcular o valor atual.</div>}
+              </section>
+              @if (cotacaoDesatualizada()) {<p class="notice warning">A cotação pode estar desatualizada.</p>}
+            }
+            <fieldset class="price-mode-section"><legend>Tipo de preço</legend><div class="price-mode-options"><label class="price-mode-option"><input type="radio" name="tipoPreco" [checked]="tipoPreco() === 'COTACAO_ATUAL'" [disabled]="!cotacaoDisponivel()" (change)="setTipoPreco('COTACAO_ATUAL')" /><span>Usar cotação atual</span></label><label class="price-mode-option"><input type="radio" name="tipoPreco" [checked]="tipoPreco() === 'PRECO_INFORMADO'" (change)="setTipoPreco('PRECO_INFORMADO')" /><span>Informar preço de compra</span></label></div></fieldset>
+            <div class="position-fields">
+              <label class="form-field">Quantidade<input type="number" formControlName="quantidade" placeholder="Quantidade" aria-label="Quantidade" /></label>
+              <label class="form-field">{{ tipoPreco() === 'PRECO_INFORMADO' ? 'Preço de compra por unidade' : 'Preço médio' }}<input type="number" formControlName="precoMedio" placeholder="Preço médio" aria-label="Preço médio" [readOnly]="tipoPreco() === 'COTACAO_ATUAL'" />@if (tipoPreco() === 'PRECO_INFORMADO') {<small class="field-help">Informe o valor efetivamente pago por unidade.</small>}@if (diferencaPrecoInformado(); as diferenca) {<small class="price-difference">O preço informado está {{ diferenca }}% {{ diferenca > 0 ? 'acima' : 'abaixo' }} da cotação atual.</small>}</label>
+              <label class="form-field">Data da primeira compra<input type="date" formControlName="dataPrimeiraCompra" aria-label="Data da compra" /></label>
+              <button class="position-submit" [disabled]="positionForm.invalid || saving() || !acoes().length || !corretoras().length">{{ editingPosition() ? 'Salvar posição' : 'Adicionar posição' }}</button>
+            </div>
+            @if (resumoPosicao(); as resumo) {<section class="position-preview"><div><small>Preço usado</small><strong>{{ money(resumo.precoMedio) }}</strong></div><div><small>Total investido</small><strong>{{ money(resumo.totalInvestido) }}</strong></div><div><small>Valor atual estimado</small><strong>{{ resumo.valorAtual === null ? 'Indisponível' : money(resumo.valorAtual) }}</strong></div><div><small>Resultado estimado</small><strong [class.positive]="resumo.resultado! > 0" [class.negative]="resumo.resultado! < 0">{{ resumo.resultado === null ? 'Indisponível' : money(resumo.resultado) }}</strong></div><div><small>Rentabilidade estimada</small><strong>{{ resumo.variacao === null ? 'Indisponível' : resumo.variacao.toFixed(2) + '%' }}</strong></div></section>}
           </form>
+          @if (!acoes().length) {<p class="notice warning">Nenhum ativo disponível. Cadastre um ativo antes de adicionar uma posição. <a routerLink="/acoes">Cadastrar ativo</a></p>}
+          @if (!corretoras().length) {<p class="notice warning">Nenhuma corretora disponível. Cadastre uma corretora antes de adicionar uma posição. <a routerLink="/corretoras">Cadastrar corretora</a></p>}
           @if (!positions().length) {
             <app-empty-state title="Sem posições" detail="Adicione uma posição a esta carteira." />
           } @else {
-            <table>
+            <div class="positions-table-wrapper"><table class="positions-table">
               <thead>
                 <tr>
                   <th>Ativo</th>
                   <th>Quantidade</th>
                   <th>Preço médio</th>
+                  <th>Cotação atual</th>
                   <th>Investido</th>
                   <th>Atual</th>
                   <th>Resultado</th>
+                  <th>Rentabilidade</th>
                   <th></th>
                 </tr>
               </thead>
@@ -353,22 +367,24 @@ export class AcoesPage {
                     <td><strong>{{ position.ticker }}</strong><small>{{ position.nomeEmpresa }}</small></td>
                     <td>{{ position.quantidade }}</td>
                     <td>{{ money(position.precoMedio) }}</td>
+                    <td>{{ position.cotacaoAtual === null ? 'Indisponível' : money(position.cotacaoAtual) }}</td>
                     <td>{{ money(position.valorInvestido) }}</td>
-                    <td>{{ money(position.valorAtual) }}</td>
+                    <td>{{ position.valorAtual === null ? 'Indisponível' : money(position.valorAtual) }}</td>
                     <td
-                      [class.positive]="position.resultado >= 0"
-                      [class.negative]="position.resultado < 0"
+                      [class.positive]="position.resultado !== null && position.resultado > 0"
+                      [class.negative]="position.resultado !== null && position.resultado < 0"
                     >
-                      {{ money(position.resultado) }}
+                      {{ position.resultado === null ? 'Indisponível' : money(position.resultado) }}
                     </td>
-                    <td>
+                    <td [class.positive]="position.rentabilidadePercentual !== null && position.rentabilidadePercentual > 0" [class.negative]="position.rentabilidadePercentual !== null && position.rentabilidadePercentual < 0">{{ position.rentabilidadePercentual === null ? 'Indisponível' : position.rentabilidadePercentual + '%' }}</td>
+                    <td><div class="position-actions">
                       <button class="secondary" (click)="editPosition(position)">Editar</button>
                       <button class="danger" (click)="removePosition(position)">Excluir</button>
-                    </td>
+                    </div></td>
                   </tr>
                 }
               </tbody>
-            </table>
+            </table></div>
           }
         } @else {
           <app-empty-state
@@ -418,10 +434,60 @@ export class CarteirasPage {
     precoMedio: this.fb.control<number | null>(null, [Validators.required, Validators.min(0.01)]),
     dataPrimeiraCompra: this.fb.control<string | null>(null, Validators.required),
   });
+  readonly tipoPreco = signal<TipoPreco>('COTACAO_ATUAL');
+  readonly selectedAcaoId = signal<number | null>(null);
+  readonly selectedAcao = computed(() => this.acoes().find((acao) => acao.id === this.selectedAcaoId()) ?? null);
+  readonly cotacaoDisponivel = computed(() => (this.selectedAcao()?.cotacaoAtual ?? 0) > 0);
+  readonly cotacaoDesatualizada = computed(() => {
+    const dataHora = this.selectedAcao()?.dataHoraCotacao;
+    return !!dataHora && Date.now() - new Date(dataHora).getTime() > 24 * 60 * 60 * 1000;
+  });
+  readonly resumoPosicao = computed(() => {
+    const quantidade = this.positionForm.controls.quantidade.value;
+    const precoMedio = this.positionForm.controls.precoMedio.value;
+    const cotacaoAtual = this.selectedAcao()?.cotacaoAtual ?? null;
+    if (quantidade === null || quantidade <= 0 || precoMedio === null || precoMedio <= 0) return null;
+    const totalInvestido = quantidade * precoMedio;
+    if (cotacaoAtual === null || cotacaoAtual <= 0) return { quantidade, precoMedio, cotacaoAtual: null, totalInvestido, valorAtual: null, resultado: null, variacao: null };
+    const valorAtual = quantidade * cotacaoAtual;
+    const resultado = valorAtual - totalInvestido;
+    return { quantidade, precoMedio, cotacaoAtual, totalInvestido, valorAtual, resultado, variacao: totalInvestido > 0 ? (resultado / totalInvestido) * 100 : 0 };
+  });
   constructor() {
     this.load();
     this.acoesApi.list(0, 100).subscribe((page) => this.acoes.set(page.content));
     this.corretorasApi.list(0, 100).subscribe((page) => this.corretoras.set(page.content));
+    this.positionForm.controls.acaoId.valueChanges.subscribe((acaoId) => {
+      this.selectedAcaoId.set(acaoId);
+      this.onAcaoChange();
+    });
+  }
+  setTipoPreco(tipoPreco: TipoPreco): void {
+    if (tipoPreco === 'COTACAO_ATUAL' && !this.cotacaoDisponivel()) return;
+    this.tipoPreco.set(tipoPreco);
+    if (tipoPreco === 'COTACAO_ATUAL') this.positionForm.controls.precoMedio.setValue(this.selectedAcao()!.cotacaoAtual!);
+    else this.positionForm.controls.precoMedio.reset();
+  }
+  diferencaPrecoInformado(): number | null {
+    const cotacao = this.selectedAcao()?.cotacaoAtual;
+    const preco = this.positionForm.controls.precoMedio.value;
+    if (this.tipoPreco() !== 'PRECO_INFORMADO' || cotacao === null || cotacao === undefined || cotacao <= 0 || preco === null || preco <= 0) return null;
+    return Number((((preco - cotacao) / cotacao) * 100).toFixed(2));
+  }
+  private onAcaoChange(): void {
+    if (this.editingPosition()) return;
+    const acao = this.selectedAcao();
+    if (!acao) return;
+    if ((acao.cotacaoAtual ?? 0) <= 0) {
+      this.acoesApi.getById(acao.id).subscribe((atualizada) => {
+        this.acoes.update((acoes) => acoes.map((item) => item.id === atualizada.id ? atualizada : item));
+        if (this.tipoPreco() === 'COTACAO_ATUAL' && (atualizada.cotacaoAtual ?? 0) > 0) this.positionForm.controls.precoMedio.setValue(atualizada.cotacaoAtual);
+      });
+    } else if (this.tipoPreco() === 'COTACAO_ATUAL') {
+      this.positionForm.controls.precoMedio.setValue(acao.cotacaoAtual);
+    } else {
+      this.positionForm.controls.precoMedio.reset();
+    }
   }
   load(): void {
     this.loading.set(true);
@@ -499,6 +565,7 @@ export class CarteirasPage {
   }
   editPosition(item: Posicao): void {
     this.editingPosition.set(item);
+    this.tipoPreco.set('PRECO_INFORMADO');
     this.positionForm.setValue({
       acaoId: item.acaoId,
       corretoraId: item.corretoraId,
@@ -652,8 +719,8 @@ export class HistoricoPage {
         <article class="metric">
           <span>Resultado</span
           ><strong
-            [class.positive]="dashboard.resultado >= 0"
-            [class.negative]="dashboard.resultado < 0"
+            [class.positive]="dashboard.resultado !== null && dashboard.resultado > 0"
+            [class.negative]="dashboard.resultado !== null && dashboard.resultado < 0"
             >{{ money(dashboard.resultado) }}</strong
           >
         </article>
@@ -682,7 +749,7 @@ export class HistoricoPage {
                   <td>{{ item.ticker }}</td>
                   <td>{{ money(item.valorInvestido) }}</td>
                   <td>{{ money(item.valorAtual) }}</td>
-                  <td [class.positive]="item.resultado >= 0" [class.negative]="item.resultado < 0">
+                  <td [class.positive]="item.resultado !== null && item.resultado > 0" [class.negative]="item.resultado !== null && item.resultado < 0">
                     {{ money(item.resultado) }}
                   </td>
                 </tr>
