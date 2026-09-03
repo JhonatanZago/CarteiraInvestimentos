@@ -7,7 +7,7 @@
       <a routerLink="/acoes" routerLinkActive="active" (click)="menuOpen.set(false)">Ativos</a>
       <a routerLink="/corretoras" routerLinkActive="active" (click)="menuOpen.set(false)">Corretoras</a>
     </nav>
-    <div class="topbar-actions"><button class="notification" type="button" aria-label="Notificações">●</button><span class="avatar" aria-label="Perfil do usuário">JD</span><button class="menu-button" type="button" (click)="menuOpen.update(value => !value)" [attr.aria-expanded]="menuOpen()" aria-label="Abrir menu de navegação">☰</button></div>
+    <div class="topbar-actions"><button class="notification" type="button" aria-label="Notificações">●</button><button type="button" class="theme-toggle" (click)="themeService.toggleTheme()" [attr.aria-label]="themeService.isDark() ? 'Ativar tema claro' : 'Ativar tema escuro'" [title]="themeService.isDark() ? 'Ativar tema claro' : 'Ativar tema escuro'">@if (themeService.isDark()) {<span aria-hidden="true">☀</span>} @else {<span aria-hidden="true">☾</span>}</button><span class="avatar" aria-label="Perfil do usuário">JD</span><button class="menu-button" type="button" (click)="menuOpen.update(value => !value)" [attr.aria-expanded]="menuOpen()" aria-label="Abrir menu de navegação">☰</button></div>
   </div></header>
   <main class="content"><router-outlet /></main>
 </div>
