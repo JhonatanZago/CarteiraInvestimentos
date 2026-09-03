@@ -8,7 +8,7 @@ Para iniciar o backend e o PostgreSQL em containers:
 docker compose up --build -d
 ```
 
-O banco utiliza o volume nomeado `carteira-investimentos-postgres-data`, montado em
+O banco utiliza o volume nomeado `carteirainvestimento_postgres_data`, montado em
 `/var/lib/postgresql/data`. Os dados permanecem após `docker compose down` e reinícios
 dos containers. Para removê-los deliberadamente, execute `docker compose down --volumes`.
 
