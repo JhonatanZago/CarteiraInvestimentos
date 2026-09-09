@@ -12,11 +12,11 @@ export class LoadingComponent {}
 
 @Component({
   selector: 'app-confirm-dialog', standalone: true,
-  template: `@if (open()) { <section class="dialog-backdrop" role="presentation"><div class="dialog" role="alertdialog" aria-modal="true"><h3>{{ title() }}</h3><p>{{ detail() }}</p><button type="button" (click)="cancelled.emit()">Cancelar</button><button type="button" class="danger" (click)="confirmed.emit()">Confirmar</button></div></section> }`,
+  template: `@if (open()) { <section class="dialog-backdrop" role="presentation"><div class="dialog" role="alertdialog" aria-modal="true"><h3>{{ title() }}</h3><p>{{ detail() }}</p><button type="button" (click)="cancelled.emit()">Cancelar</button><button type="button" class="danger" (click)="confirmed.emit()">{{ confirmLabel() }}</button></div></section> }`,
 })
 export class ConfirmDialogComponent {
   readonly open = input(false); readonly title = input('Confirmar ação'); readonly detail = input('Esta ação não pode ser desfeita.');
-  readonly confirmed = output<void>(); readonly cancelled = output<void>();
+  readonly confirmLabel = input('Confirmar'); readonly confirmed = output<void>(); readonly cancelled = output<void>();
 }
 
 @Component({

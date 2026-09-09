@@ -1,0 +1,8 @@
+<span class="asset-logo" [style.--asset-logo-size]="size() + 'px'" [title]="companyName() || normalizedTicker()">
+  @if (showImage()) {
+    <img [src]="validLogoUrl()" [alt]="'Logotipo de ' + (companyName() || normalizedTicker())" loading="lazy" decoding="async" (error)="handleImageError()" />
+  } @else {
+    <span class="asset-logo-fallback" [style.background]="background()" aria-hidden="true">{{ initials() }}</span>
+  }
+  <span class="asset-logo-name" aria-hidden="true">{{ initials() }}</span>
+</span>

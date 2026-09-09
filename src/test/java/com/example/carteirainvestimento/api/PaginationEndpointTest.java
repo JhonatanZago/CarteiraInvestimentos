@@ -10,6 +10,7 @@ import com.example.carteirainvestimento.enums.Mercado;
 import com.example.carteirainvestimento.enums.Moeda;
 import com.example.carteirainvestimento.repository.AcaoRepository;
 import com.example.carteirainvestimento.repository.CorretoraRepository;
+import com.example.carteirainvestimento.repository.PortfolioSnapshotRepository;
 import com.example.carteirainvestimento.repository.AtivoCarteiraRepository;
 import com.example.carteirainvestimento.repository.CarteiraRepository;
 import com.example.carteirainvestimento.repository.HistoricoCotacaoRepository;
@@ -38,12 +39,14 @@ class PaginationEndpointTest {
     private CorretoraRepository corretoraRepository;
 
     @Autowired private AtivoCarteiraRepository ativoCarteiraRepository;
+    @Autowired private PortfolioSnapshotRepository portfolioSnapshotRepository;
     @Autowired private CarteiraRepository carteiraRepository;
     @Autowired private HistoricoCotacaoRepository historicoCotacaoRepository;
 
     @BeforeEach
     void setUp() {
         ativoCarteiraRepository.deleteAll();
+        portfolioSnapshotRepository.deleteAll();
         carteiraRepository.deleteAll();
         historicoCotacaoRepository.deleteAll();
         acaoRepository.deleteAll();

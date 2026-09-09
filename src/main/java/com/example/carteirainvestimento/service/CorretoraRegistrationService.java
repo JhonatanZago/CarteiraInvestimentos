@@ -15,6 +15,8 @@ import com.example.carteirainvestimento.integration.adapter.EnderecoAdapter;
 import com.example.carteirainvestimento.integration.dto.EmpresaConsulta;
 import com.example.carteirainvestimento.integration.dto.EnderecoConsulta;
 import com.example.carteirainvestimento.repository.CorretoraRepository;
+import com.example.carteirainvestimento.repository.AtivoCarteiraRepository;
+import com.example.carteirainvestimento.exception.AssetInUseException;
 import com.example.carteirainvestimento.validation.CnpjValidator;
 import com.example.carteirainvestimento.validation.DocumentoNormalizer;
 import org.springframework.stereotype.Service;
@@ -26,12 +28,30 @@ public class CorretoraRegistrationService {
     private final CorretoraRepository repository;
     private final EmpresaAdapter empresaAdapter;
     private final EnderecoAdapter enderecoAdapter;
+    private final AtivoCarteiraRepository ativos;
 
     public CorretoraRegistrationService(CorretoraRepository repository, EmpresaAdapter empresaAdapter,
                                         EnderecoAdapter enderecoAdapter) {
+        this(repository, empresaAdapter, enderecoAdapter, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public CorretoraRegistrationService(CorretoraRepository repository, EmpresaAdapter empresaAdapter,
+                                        EnderecoAdapter enderecoAdapter, AtivoCarteiraRepository ativos) {
         this.repository = repository;
         this.empresaAdapter = empresaAdapter;
         this.enderecoAdapter = enderecoAdapter;
+        this.ativos = ativos;
+    }
+
+    @Transactional
+    public void excluir(Long id) {
+        Corretora corretora = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Corretora nao encontrada"));
+        if (ativos != null && ativos.existsByCorretoraId(id)) {
+            throw new AssetInUseException("Esta corretora nao pode ser excluida porque possui posicoes vinculadas.");
+        }
+        repository.delete(corretora);
     }
 
     @Transactional
@@ -86,6 +106,11 @@ public class CorretoraRegistrationService {
         corretora.setDataValidacaoMercado(status == StatusValidacaoCorretora.VALIDADA
                 ? OffsetDateTime.now(ZoneOffset.UTC) : null);
         corretora.setFonteValidacaoMercado("BRASIL_API");
+        var logo = CorretoraLogoRegistry.logoFor(cnpj);
+        corretora.setLogoUrl(logo);
+        corretora.setLogoSource(logo == null ? "FALLBACK" : "OFFICIAL_WEBSITE");
+        corretora.setStatusLogo(logo == null ? "NOT_FOUND" : "AVAILABLE");
+        corretora.setLogoUpdatedAt(logo == null ? null : OffsetDateTime.now(ZoneOffset.UTC));
         corretora.setDataCadastro(OffsetDateTime.now(ZoneOffset.UTC));
         return repository.save(corretora);
     }
@@ -109,6 +134,13 @@ public class CorretoraRegistrationService {
         corretora.setSituacaoCadastral(empresa.situacaoCadastral());
         corretora.setDataValidacaoMercado(OffsetDateTime.now(ZoneOffset.UTC));
         corretora.setFonteValidacaoMercado("BRASIL_API");
+        var logo = CorretoraLogoRegistry.logoFor(corretora.getCnpj());
+        if (logo != null) {
+            corretora.setLogoUrl(logo);
+            corretora.setLogoSource("OFFICIAL_WEBSITE");
+            corretora.setStatusLogo("AVAILABLE");
+            corretora.setLogoUpdatedAt(OffsetDateTime.now(ZoneOffset.UTC));
+        }
         return repository.save(corretora);
     }
 }

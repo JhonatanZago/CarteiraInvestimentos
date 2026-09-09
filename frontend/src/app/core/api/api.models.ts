@@ -37,6 +37,11 @@ export interface Corretora {
   dataValidacaoMercado?: string;
   fonteValidacaoMercado?: string;
   dataCadastro: string;
+  logoUrl?: string | null;
+  logoSource?: string | null;
+  logoUpdatedAt?: string | null;
+  website?: string | null;
+  statusLogo?: 'AVAILABLE' | 'FALLBACK' | 'NOT_FOUND' | 'SOURCE_UNAVAILABLE' | 'INVALID_URL' | null;
 }
 
 export interface CorretoraCreateRequest {
@@ -54,11 +59,17 @@ export interface Acao {
   moeda: string;
   cotacaoAtual: number | null;
   dataHoraCotacao: string | null;
+  logoUrl?: string | null;
+  listingCountryCode?: string | null;
+  exchange?: string | null;
+  exchangeMic?: string | null;
+  dataSource?: string | null;
 }
 
 export interface AcaoCreateRequest {
   ticker: string;
   mercado: 'BRASIL' | 'EUA';
+  selectedCountryCode: string;
 }
 
 export interface HistoricoCotacao {
@@ -94,12 +105,14 @@ export interface Posicao {
   classificacaoAlocacao: 'ACOES_BRASIL' | 'ACOES_EXTERIOR';
   ticker: string;
   nomeEmpresa: string;
+  logoUrl?: string | null;
   cotacaoAtual: number | null;
   dataHoraCotacao: string | null;
   valorInvestido: number;
   valorAtual: number | null;
   resultado: number | null;
   rentabilidadePercentual: number | null;
+  moeda?: string | null;
 }
 
 export interface PosicaoRequest {
@@ -128,16 +141,24 @@ export interface ComposicaoCarteira {
   classificacaoAlocacao: 'ACOES_BRASIL' | 'ACOES_EXTERIOR';
   ticker: string;
   nomeEmpresa: string;
+  logoUrl?: string | null;
   quantidade: number;
+  precoMedio: number;
   cotacaoAtual: number | null;
   dataHoraCotacao: string | null;
   valorInvestido: number;
   valorAtual: number | null;
   resultado: number | null;
   rentabilidadePercentual: number | null;
+  moeda?: string | null;
+  conversaoEstimada?: boolean;
+  valorInvestidoConvertidoBase?: number | null;
+  valorAtualConvertidoBase?: number | null;
+  cambioParaBase?: number | null;
 }
 
 export type InsightAvailability = 'AVAILABLE' | 'STALE' | 'UNAVAILABLE';
 export interface MarketIndicator { codigo: string; descricao: string; valor: number | null; variacaoPercentual: number | null; referenciaEm: string | null; disponibilidade: InsightAvailability; }
-export interface PortfolioEvolutionPoint { referenciaEm: string | null; valorInvestido: number; valorAtual: number; disponibilidade: InsightAvailability; }
+export interface PortfolioEvolutionPoint { referenciaEm: string | null; valorInvestido: number; valorAtual: number; disponibilidade: InsightAvailability; timestamp?: string | null; investedAmount?: number | null; currentAmount?: number | null; resultAmount?: number | null; returnPercentage?: number | null; }
 export interface IncomeSummary { recebidosUltimosDozeMeses: number; proximosProventos: number | null; referenciaEm: string | null; disponibilidade: InsightAvailability; }
+export interface CurrencyAnalysis { exposicoes: Array<{ moeda: string; nome: string; valorOriginal: number; percentual: number | null }>; quantidadeEmLucro: number; quantidadeEmPrejuizo: number; quantidadeNeutra: number; resultadosPorMoeda: Array<{ moeda: string; resultado: number }>; ativos: Array<{ acaoId: number; ticker: string; nomeEmpresa: string; logoUrl?: string | null; moeda: string; resultado: number | null; rentabilidade: number | null }>; moedaBase: string; mensagemCambio?: string | null; }

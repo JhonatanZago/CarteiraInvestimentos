@@ -35,6 +35,7 @@ class AtivoCarteiraServiceTest {
     @Mock private AcaoRepository acoes;
     @Mock private CorretoraRepository corretoras;
     @Mock private AtivoCarteiraRepository ativos;
+    @Mock private PortfolioSnapshotService snapshots;
 
     private AtivoCarteiraService service;
     private Carteira carteira;
@@ -43,7 +44,7 @@ class AtivoCarteiraServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new AtivoCarteiraService(carteiras, acoes, corretoras, ativos);
+        service = new AtivoCarteiraService(carteiras, acoes, corretoras, ativos, snapshots);
         carteira = new Carteira(); carteira.setId(1L);
         acao = new Acao(); acao.setId(2L);
         corretora = new Corretora(); corretora.setId(3L);

@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
+import com.example.carteirainvestimento.repository.PortfolioSnapshotRepository;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -34,12 +35,14 @@ class DashboardControllerTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private CarteiraRepository carteiras;
     @Autowired private AtivoCarteiraRepository ativos;
+    @Autowired private PortfolioSnapshotRepository snapshots;
     @Autowired private AcaoRepository acoes;
     @Autowired private CorretoraRepository corretoras;
 
     @BeforeEach
     void limparCarteiras() {
         ativos.deleteAll();
+        snapshots.deleteAll();
         carteiras.deleteAll();
     }
 

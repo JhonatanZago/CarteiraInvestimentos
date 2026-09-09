@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import com.example.carteirainvestimento.service.ExchangeRateService;
 
 @RestController
 @io.swagger.v3.oas.annotations.tags.Tag(name = "Carteiras", description = "Carteiras e posicoes de investimento")
@@ -35,10 +36,17 @@ public class CarteiraController {
 
     private final CarteiraService carteiras;
     private final AtivoCarteiraService ativos;
+    private final ExchangeRateService exchangeRates;
 
     public CarteiraController(CarteiraService carteiras, AtivoCarteiraService ativos) {
+        this(carteiras, ativos, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public CarteiraController(CarteiraService carteiras, AtivoCarteiraService ativos, ExchangeRateService exchangeRates) {
         this.carteiras = carteiras;
         this.ativos = ativos;
+        this.exchangeRates = exchangeRates;
     }
 
     @PostMapping
@@ -75,7 +83,7 @@ public class CarteiraController {
     @ResponseStatus(HttpStatus.CREATED)
     public AtivoCarteiraResponse criarPosicao(
             @PathVariable Long carteiraId, @Valid @RequestBody AtivoCarteiraRequest request) {
-        return AtivoCarteiraMapper.toResponse(ativos.criar(carteiraId, request));
+        return map(ativos.criar(carteiraId, request));
     }
 
     @GetMapping("/{carteiraId}/posicoes")
@@ -84,7 +92,7 @@ public class CarteiraController {
             @RequestParam(required = false) ClassificacaoAlocacao classificacao,
             @RequestParam(required = false) String busca,
             @RequestParam(required = false) String ordenarPor) {
-        return ativos.listar(carteiraId, mercado, classificacao, busca, ordenarPor).stream().map(AtivoCarteiraMapper::toResponse).toList();
+        return ativos.listar(carteiraId, mercado, classificacao, busca, ordenarPor).stream().map(this::map).toList();
     }
 
     @GetMapping("/{carteiraId}/posicoes/paginadas")
@@ -95,7 +103,7 @@ public class CarteiraController {
             @RequestParam(required = false) String busca,
             @RequestParam(required = false) String ordenarPor) {
         List<AtivoCarteiraResponse> filtradas = ativos.listar(carteiraId, mercado, classificacao, busca, ordenarPor)
-                .stream().map(AtivoCarteiraMapper::toResponse).toList();
+                .stream().map(this::map).toList();
         int inicio = Math.min(page * size, filtradas.size());
         int fim = Math.min(inicio + size, filtradas.size());
         return new PageResponse<>(filtradas.subList(inicio, fim), page, size, filtradas.size(),
@@ -106,12 +114,17 @@ public class CarteiraController {
     public AtivoCarteiraResponse atualizarPosicao(
             @PathVariable Long carteiraId, @PathVariable Long posicaoId,
             @Valid @RequestBody AtivoCarteiraRequest request) {
-        return AtivoCarteiraMapper.toResponse(ativos.atualizar(carteiraId, posicaoId, request));
+        return map(ativos.atualizar(carteiraId, posicaoId, request));
     }
 
     @DeleteMapping("/{carteiraId}/posicoes/{posicaoId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void excluirPosicao(@PathVariable Long carteiraId, @PathVariable Long posicaoId) {
         ativos.excluir(carteiraId, posicaoId);
+    }
+
+    private AtivoCarteiraResponse map(AtivoCarteira ativo) {
+        var cambio = exchangeRates == null ? null : exchangeRates.usdToBrl();
+        return AtivoCarteiraMapper.toResponse(ativo, cambio, null, cambio == null ? null : "MARKET_INDICATOR");
     }
 }

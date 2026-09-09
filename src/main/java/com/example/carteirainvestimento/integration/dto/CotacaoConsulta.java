@@ -14,5 +14,13 @@ public record CotacaoConsulta(
         Moeda moeda,
         BigDecimal valor,
         OffsetDateTime dataHoraCotacao,
-        FonteCotacao fonte) {
+        String logoUrl,
+        FonteCotacao fonte,
+        String listingCountryCode,
+        String exchange,
+        String exchangeMic) {
+    public CotacaoConsulta(String ticker, String nomeEmpresa, Mercado mercado, Moeda moeda,
+                           BigDecimal valor, OffsetDateTime dataHoraCotacao, String logoUrl, FonteCotacao fonte) {
+        this(ticker, nomeEmpresa, mercado, moeda, valor, dataHoraCotacao, logoUrl, fonte, null, null, null);
+    }
 }

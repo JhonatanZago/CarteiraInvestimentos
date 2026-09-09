@@ -55,7 +55,7 @@ public class AlphaVantageCotacaoAdapter implements CotacaoAdapter {
             validarVisaoGeralCompleta(overviewResponse.name(), overviewResponse.currency());
             return new CotacaoConsulta(quote.symbol(), overviewResponse.name(), Mercado.EUA, moeda(overviewResponse.currency()),
                     new BigDecimal(quote.price()), LocalDate.parse(quote.latestTradingDay()).atStartOfDay().atOffset(ZoneOffset.UTC),
-                    FonteCotacao.ALPHA_VANTAGE);
+                    null, FonteCotacao.ALPHA_VANTAGE);
         } catch (RestClientException | IllegalArgumentException exception) {
             throw new ExternalIntegrationException("Falha ao consultar a Alpha Vantage");
         }

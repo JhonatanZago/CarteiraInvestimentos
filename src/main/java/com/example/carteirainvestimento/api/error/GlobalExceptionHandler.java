@@ -5,7 +5,6 @@ import java.util.List;
 
 import com.example.carteirainvestimento.exception.ApplicationException;
 import com.example.carteirainvestimento.exception.ErrorCode;
-import com.example.carteirainvestimento.exception.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpStatus;
@@ -13,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -27,11 +28,30 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApplicationException.class)
     ResponseEntity<ApiError> handleApplication(ApplicationException exception, HttpServletRequest request) {
-        HttpStatus status = exception instanceof ResourceNotFoundException ? HttpStatus.NOT_FOUND : HttpStatus.CONFLICT;
-        if (exception.getErrorCode() == ErrorCode.EXTERNAL_INTEGRATION_ERROR) {
-            status = HttpStatus.BAD_GATEWAY;
-        }
+        HttpStatus status = statusFor(exception.getErrorCode());
         return response(status, exception.getErrorCode(), exception.getMessage(), request, List.of());
+    }
+
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class, HttpMessageNotReadableException.class})
+    ResponseEntity<ApiError> handleMalformedRequest(Exception exception, HttpServletRequest request) {
+        return response(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_ERROR, "Request validation failed", request, List.of());
+    }
+
+    @ExceptionHandler(Exception.class)
+    ResponseEntity<ApiError> handleUnexpected(Exception exception, HttpServletRequest request) {
+        return response(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR,
+                "An unexpected error occurred", request, List.of());
+    }
+
+    private HttpStatus statusFor(ErrorCode code) {
+        return switch (code) {
+            case VALIDATION_ERROR, BUSINESS_RULE_VIOLATION -> HttpStatus.BAD_REQUEST;
+            case RESOURCE_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case DUPLICATE_RESOURCE, ASSET_IN_USE -> HttpStatus.CONFLICT;
+            case ASSET_MARKET_MISMATCH -> HttpStatus.UNPROCESSABLE_ENTITY;
+            case EXTERNAL_INTEGRATION_ERROR -> HttpStatus.BAD_GATEWAY;
+            case INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;
+        };
     }
 
     private ResponseEntity<ApiError> response(

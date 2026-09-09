@@ -14,3 +14,7 @@
 
 - [x] 3.1 Run the backend test suite and OpenAPI smoke test; verify all existing and new `/api/v1` contracts pass.
 - [x] 3.2 Document the additive position and dashboard response fields in OpenAPI examples; verify Swagger UI exposes the updated schemas.
+
+## 4. Consolidated positions accuracy
+
+- [x] 4.1 Consolidate dashboard positions by `acaoId`, calculate the open weighted-average cost from purchase and sale movements with `BigDecimal`/`HALF_EVEN` (falling back to persisted legacy positions when no movement history exists), expose quantity, average price and explicit currency, and render the real Visão geral table with currency-aware values, internal horizontal scrolling and aligned numeric columns; verify backend, frontend, build and visual route validation.

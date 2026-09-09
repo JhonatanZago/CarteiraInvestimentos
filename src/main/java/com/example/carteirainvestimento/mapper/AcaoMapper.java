@@ -10,6 +10,7 @@ public final class AcaoMapper {
 
     public static AcaoResponse toResponse(Acao acao) {
         return new AcaoResponse(acao.getId(), acao.getTicker(), acao.getNomeEmpresa(), acao.getMercado(),
-                acao.getMoeda(), acao.getCotacaoAtual(), acao.getDataHoraCotacao());
+                acao.getMoeda(), acao.getCotacaoAtual(), acao.getDataHoraCotacao(), acao.getLogoUrl(),
+                acao.getListingCountryCode(), acao.getExchange(), acao.getExchangeMic(), acao.getDataSource());
     }
 }

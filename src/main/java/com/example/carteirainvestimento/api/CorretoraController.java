@@ -59,4 +59,10 @@ public class CorretoraController {
     public CorretoraResponse revalidar(@PathVariable Long id) {
         return CorretoraMapper.toResponse(registrationService.revalidar(id));
     }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        registrationService.excluir(id);
+    }
 }

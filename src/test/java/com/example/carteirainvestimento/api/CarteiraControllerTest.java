@@ -15,6 +15,7 @@ import com.example.carteirainvestimento.repository.AcaoRepository;
 import com.example.carteirainvestimento.repository.AtivoCarteiraRepository;
 import com.example.carteirainvestimento.repository.CarteiraRepository;
 import com.example.carteirainvestimento.repository.CorretoraRepository;
+import com.example.carteirainvestimento.repository.PortfolioSnapshotRepository;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -38,10 +39,12 @@ class CarteiraControllerTest {
     @Autowired private CorretoraRepository corretoras;
     @Autowired private CarteiraRepository carteiras;
     @Autowired private AtivoCarteiraRepository ativos;
+    @Autowired private PortfolioSnapshotRepository snapshots;
 
     @BeforeEach
     void limparCarteiras() {
         ativos.deleteAll();
+        snapshots.deleteAll();
         carteiras.deleteAll();
     }
 
@@ -109,7 +112,7 @@ class CarteiraControllerTest {
         criarPosicao(carteiraId, acao.getId(), corretora.getId());
 
         mockMvc.perform(delete("/api/v1/carteiras/{id}", carteiraId))
-                .andExpect(status().isConflict())
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("BUSINESS_RULE_VIOLATION"));
     }
 

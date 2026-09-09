@@ -7,6 +7,8 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 public interface HistoricoCotacaoRepository extends JpaRepository<HistoricoCotacao, Long> {
+    boolean existsByAcaoId(Long acaoId);
     boolean existsByAcaoIdAndDataHoraCotacao(Long acaoId, OffsetDateTime dataHoraCotacao);
     List<HistoricoCotacao> findByAcaoIdOrderByDataHoraCotacaoDesc(Long acaoId);
+    List<HistoricoCotacao> findByAcaoIdInOrderByDataHoraCotacaoAsc(List<Long> acaoIds);
 }

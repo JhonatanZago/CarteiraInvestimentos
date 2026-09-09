@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from './api-url.token';
 import {
-  Acao, AcaoCreateRequest, Carteira, CarteiraRequest, Corretora, CorretoraCreateRequest,
+  Acao, AcaoCreateRequest, Carteira, CarteiraRequest, Corretora, CorretoraCreateRequest, CurrencyAnalysis,
   DashboardCarteira, HistoricoCotacao, IncomeSummary, MarketIndicator, PageResponse, PortfolioEvolutionPoint, Posicao, PosicaoRequest,
 } from './api.models';
 
@@ -24,6 +24,7 @@ export class CorretorasApiService {
   getById(id: number): Observable<Corretora> { return this.http.get<Corretora>(`${this.baseUrl}/corretoras/${id}`); }
   getByCnpj(cnpj: string): Observable<Corretora> { return this.http.get<Corretora>(`${this.baseUrl}/corretoras/cnpj/${cnpj}`); }
   revalidate(id: number): Observable<Corretora> { return this.http.post<Corretora>(`${this.baseUrl}/corretoras/${id}/revalidacao-empresarial`, {}); }
+  delete(id: number): Observable<void> { return this.http.delete<void>(`${this.baseUrl}/corretoras/${id}`); }
 }
 
 @Injectable({ providedIn: 'root' })
@@ -37,7 +38,10 @@ export class AcoesApiService {
   getById(id: number): Observable<Acao> { return this.http.get<Acao>(`${this.baseUrl}/acoes/${id}`); }
   getByTicker(ticker: string): Observable<Acao> { return this.http.get<Acao>(`${this.baseUrl}/acoes/ticker/${ticker}`); }
   refresh(id: number): Observable<Acao> { return this.http.post<Acao>(`${this.baseUrl}/acoes/${id}/atualizar-cotacao`, {}); }
+  delete(id: number): Observable<void> { return this.http.delete<void>(`${this.baseUrl}/acoes/${id}`); }
   history(id: number): Observable<HistoricoCotacao[]> { return this.http.get<HistoricoCotacao[]>(`${this.baseUrl}/acoes/${id}/historico`); }
+  revalidate(id: number): Observable<Acao> { return this.http.post<Acao>(`${this.baseUrl}/acoes/${id}/revalidacao`, {}); }
+  revalidateAll(): Observable<{ processados: number; atualizados: number; semLogo: number; erros: string[] }> { return this.http.post<{ processados: number; atualizados: number; semLogo: number; erros: string[] }>(`${this.baseUrl}/acoes/revalidacao-em-lote`, {}); }
 }
 
 @Injectable({ providedIn: 'root' })
@@ -79,4 +83,5 @@ export class InsightsApiService {
   indicators(context?: HttpContext): Observable<MarketIndicator[]> { return this.http.get<MarketIndicator[]>(`${this.baseUrl}/mercado/indicadores`, context ? { context } : {}); }
   evolution(carteiraId: number, context?: HttpContext): Observable<PortfolioEvolutionPoint[]> { return this.http.get<PortfolioEvolutionPoint[]>(`${this.baseUrl}/carteiras/${carteiraId}/evolucao`, context ? { context } : {}); }
   income(carteiraId: number, context?: HttpContext): Observable<IncomeSummary> { return this.http.get<IncomeSummary>(`${this.baseUrl}/carteiras/${carteiraId}/proventos`, context ? { context } : {}); }
+  currencyAnalysis(carteiraId: number, context?: HttpContext): Observable<CurrencyAnalysis> { return this.http.get<CurrencyAnalysis>(`${this.baseUrl}/carteiras/${carteiraId}/analise-moedas`, context ? { context } : {}); }
 }

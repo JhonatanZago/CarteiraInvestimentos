@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Comparator;
 import com.example.carteirainvestimento.enums.Mercado;
 import com.example.carteirainvestimento.dto.insight.ClassificacaoAlocacao;
+import com.example.carteirainvestimento.enums.OrigemSnapshotCarteira;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,13 +28,15 @@ public class AtivoCarteiraService {
     private final AcaoRepository acoes;
     private final CorretoraRepository corretoras;
     private final AtivoCarteiraRepository ativos;
+    private final PortfolioSnapshotService snapshots;
 
     public AtivoCarteiraService(CarteiraRepository carteiras, AcaoRepository acoes,
-            CorretoraRepository corretoras, AtivoCarteiraRepository ativos) {
+            CorretoraRepository corretoras, AtivoCarteiraRepository ativos, PortfolioSnapshotService snapshots) {
         this.carteiras = carteiras;
         this.acoes = acoes;
         this.corretoras = corretoras;
         this.ativos = ativos;
+        this.snapshots = snapshots;
     }
 
     @Transactional
@@ -44,7 +47,7 @@ public class AtivoCarteiraService {
 
         AtivoCarteira ativo = new AtivoCarteira();
         preencher(ativo, carteira, request);
-        return ativos.save(ativo);
+        AtivoCarteira salvo = ativos.save(ativo); snapshots.registrarEvento(carteiraId, OrigemSnapshotCarteira.POSITION_CREATED); return salvo;
     }
 
     @Transactional(readOnly = true)
@@ -79,12 +82,12 @@ public class AtivoCarteiraService {
         }
 
         preencher(ativo, ativo.getCarteira(), request);
-        return ativos.save(ativo);
+        AtivoCarteira salvo = ativos.save(ativo); snapshots.registrarEvento(carteiraId, OrigemSnapshotCarteira.POSITION_UPDATED); return salvo;
     }
 
     @Transactional
     public void excluir(Long carteiraId, Long ativoId) {
-        ativos.delete(buscarAtivoDaCarteira(carteiraId, ativoId));
+        ativos.delete(buscarAtivoDaCarteira(carteiraId, ativoId)); ativos.flush(); snapshots.registrarEvento(carteiraId, OrigemSnapshotCarteira.POSITION_DELETED);
     }
 
     private void preencher(AtivoCarteira ativo, Carteira carteira, AtivoCarteiraRequest request) {
@@ -94,6 +97,7 @@ public class AtivoCarteiraService {
         ativo.setQuantidade(request.quantidade());
         ativo.setPrecoMedio(request.precoMedio());
         ativo.setDataPrimeiraCompra(request.dataPrimeiraCompra());
+        ativo.setCambioHistoricoComprovado(ativo.getAcao().getMoeda() == com.example.carteirainvestimento.enums.Moeda.BRL);
     }
 
     private void validarDados(AtivoCarteiraRequest request) {

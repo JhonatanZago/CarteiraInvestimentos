@@ -49,3 +49,7 @@ out/
 frontend/node_modules/
 frontend/dist/
 frontend/.angular/
+
+BRAPI_BASE_URL=https://brapi.dev
+  BRAPI_TOKEN=bV7bUxQgP9kPuAbDkS8eUV
+

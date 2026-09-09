@@ -15,6 +15,7 @@ public final class CorretoraMapper {
                 corretora.getCidade(), corretora.getUf(), corretora.getSituacaoCadastral(),
                 corretora.isValidadaMercadoFinanceiro(), corretora.getDataValidacaoMercado(),
                 corretora.getFonteValidacaoMercado(), corretora.getStatusValidacao(),
-                corretora.getMotivoValidacao(), corretora.getDataCadastro());
+                corretora.getMotivoValidacao(), corretora.getDataCadastro(), corretora.getLogoUrl(),
+                corretora.getLogoSource(), corretora.getLogoUpdatedAt(), corretora.getWebsite(), corretora.getStatusLogo());
     }
 }

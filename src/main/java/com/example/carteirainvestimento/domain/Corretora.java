@@ -56,4 +56,14 @@ public class Corretora {
 
     @Column(nullable = false)
     private OffsetDateTime dataCadastro;
+
+    @Column(length = 2048)
+    private String logoUrl;
+    @Column(length = 40)
+    private String logoSource;
+    private OffsetDateTime logoUpdatedAt;
+    @Column(length = 512)
+    private String website;
+    @Column(length = 32)
+    private String statusLogo;
 }

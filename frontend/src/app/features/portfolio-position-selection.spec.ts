@@ -47,7 +47,7 @@ describe('identificadores internos nas listagens', () => {
     const fixture = TestBed.createComponent(CorretorasPage);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('#34');
-    expect(fixture.nativeElement.querySelector('[title="Identificador interno da corretora"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.entity-id-badge[title="Identificador interno: 34"]')).not.toBeNull();
   });
 
   it('exibe o ID do ativo na tabela', async () => {
@@ -61,7 +61,7 @@ describe('identificadores internos nas listagens', () => {
     const fixture = TestBed.createComponent(AcoesPage);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('#12');
-    expect(fixture.nativeElement.querySelector('[title="Identificador interno do ativo"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.entity-id-badge[title="Identificador interno: 12"]')).not.toBeNull();
   });
 });
 

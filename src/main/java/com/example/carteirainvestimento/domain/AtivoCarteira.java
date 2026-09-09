@@ -50,4 +50,16 @@ public class AtivoCarteira {
 
     @Column(nullable = false)
     private LocalDate dataPrimeiraCompra;
+
+    /**
+     * Posições legadas não possuem o câmbio da compra comprovado. Nelas,
+     * qualquer consolidação em BRL deve ser identificada como estimada.
+     */
+    @Column(name = "cambio_historico_comprovado")
+    private Boolean cambioHistoricoComprovado = Boolean.FALSE;
+
+    public boolean isConversaoEstimada() {
+        return acao != null && acao.getMoeda() != com.example.carteirainvestimento.enums.Moeda.BRL
+                && !Boolean.TRUE.equals(cambioHistoricoComprovado);
+    }
 }

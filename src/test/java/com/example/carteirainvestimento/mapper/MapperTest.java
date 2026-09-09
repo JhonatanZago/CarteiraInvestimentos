@@ -34,7 +34,27 @@ class MapperTest {
 
         assertThat(AcaoMapper.toResponse(acao)).isEqualTo(
                 new AcaoResponse(10L, "PETR4", "Petrobras", Mercado.BRASIL, Moeda.BRL,
-                        new BigDecimal("31.25"), NOW));
+                        new BigDecimal("31.25"), NOW, null));
+    }
+
+    @Test
+    void preservesInternationalMarketContractFields() {
+        Acao acao = acao();
+        acao.setTicker("AAPL");
+        acao.setMercado(Mercado.EUA);
+        acao.setMoeda(Moeda.USD);
+        acao.setListingCountryCode("US");
+        acao.setExchange("NASDAQ");
+        acao.setExchangeMic("XNAS");
+        acao.setDataSource("provider");
+
+        AcaoResponse response = AcaoMapper.toResponse(acao);
+
+        assertThat(response.moeda()).isEqualTo(Moeda.USD);
+        assertThat(response.listingCountryCode()).isEqualTo("US");
+        assertThat(response.exchange()).isEqualTo("NASDAQ");
+        assertThat(response.exchangeMic()).isEqualTo("XNAS");
+        assertThat(response.dataSource()).isEqualTo("provider");
     }
 
     @Test
@@ -69,7 +89,7 @@ class MapperTest {
         assertThat(AtivoCarteiraMapper.toResponse(ativo)).isEqualTo(
                 new AtivoCarteiraResponse(40L, 30L, 10L, 20L, new BigDecimal("100"),
                         new BigDecimal("28.50"), LocalDate.of(2025, 1, 15), Mercado.BRASIL,
-                        ClassificacaoAlocacao.ACOES_BRASIL, "PETR4", "Petrobras",
+                        ClassificacaoAlocacao.ACOES_BRASIL, "PETR4", "Petrobras", null,
                         new BigDecimal("31.25"), NOW, new BigDecimal("2850.00"), new BigDecimal("3125.00"),
                         new BigDecimal("275.00"), new BigDecimal("9.6491")));
     }

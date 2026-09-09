@@ -45,7 +45,7 @@ class CotacaoFacadeTest {
             @Override
             public CotacaoConsulta buscarCotacao(String ticker) {
                 return new CotacaoConsulta(ticker, ticker, supportedMarket, Moeda.BRL, BigDecimal.ONE,
-                        OffsetDateTime.now(), source);
+                        OffsetDateTime.now(), null, source);
             }
         };
     }

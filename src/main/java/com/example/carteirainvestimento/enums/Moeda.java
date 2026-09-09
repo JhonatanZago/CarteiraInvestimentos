@@ -2,5 +2,9 @@ package com.example.carteirainvestimento.enums;
 
 public enum Moeda {
     BRL,
-    USD
+    USD,
+    EUR,
+    GBP,
+    CAD,
+    JPY
 }

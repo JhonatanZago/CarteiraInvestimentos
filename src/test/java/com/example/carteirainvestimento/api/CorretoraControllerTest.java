@@ -89,7 +89,7 @@ class CorretoraControllerTest {
         when(registrationService.registrar(any()))
                 .thenThrow(new BusinessRuleException("Empresa nao esta ativa"));
 
-        postBroker().andExpect(status().isConflict())
+        postBroker().andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("BUSINESS_RULE_VIOLATION"));
     }
 
@@ -98,7 +98,7 @@ class CorretoraControllerTest {
         when(registrationService.registrar(any()))
                 .thenThrow(new BusinessRuleException("Instituicao financeira nao autorizada pela CVM"));
 
-        postBroker().andExpect(status().isConflict())
+        postBroker().andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("BUSINESS_RULE_VIOLATION"));
     }
 

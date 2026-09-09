@@ -48,4 +48,16 @@ public class Acao {
 
     @Column(nullable = false)
     private OffsetDateTime dataHoraCotacao;
+
+    @Column(length = 2048)
+    private String logoUrl;
+
+    @Column(length = 2)
+    private String listingCountryCode;
+    @Column(length = 80)
+    private String exchange;
+    @Column(length = 12)
+    private String exchangeMic;
+    @Column(length = 40)
+    private String dataSource;
 }

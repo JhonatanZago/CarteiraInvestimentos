@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
@@ -42,5 +43,17 @@ class BrapiCotacaoAdapterTest {
                         """, MediaType.APPLICATION_JSON));
         assertThatThrownBy(() -> adapter.buscarCotacao("PETR4"))
                 .isInstanceOf(ExternalIntegrationException.class);
+    }
+
+    @Test
+    void mapsOnlyHttpsLogoUrlReturnedByBrapi() {
+        server.expect(requestTo("https://brapi.test/api/v2/stocks/quote?symbols=PETR4"))
+                .andRespond(withSuccess("""
+                        {"results":[{"symbol":"PETR4","longName":"Petrobras","currency":"BRL",
+                        "regularMarketPrice":38.50,"regularMarketTime":"2026-09-04T15:30:00Z",
+                        "logourl":"https://cdn.example.com/petr4.png"}]}
+                        """, MediaType.APPLICATION_JSON));
+
+        assertThat(adapter.buscarCotacao("PETR4").logoUrl()).isEqualTo("https://cdn.example.com/petr4.png");
     }
 }

@@ -41,5 +41,9 @@ public class AcaoController {
     @GetMapping("/{id}") public AcaoResponse get(@PathVariable Long id) { return AcaoMapper.toResponse(service.findById(id)); }
     @GetMapping("/ticker/{ticker}") public AcaoResponse getTicker(@PathVariable String ticker) { return AcaoMapper.toResponse(service.findByTicker(ticker)); }
     @PostMapping("/{id}/atualizar-cotacao") public AcaoResponse refresh(@PathVariable Long id) { return AcaoMapper.toResponse(refresh.atualizar(id)); }
+    @PostMapping("/{id}/revalidacao-mercado") public AcaoResponse revalidar(@PathVariable Long id) { return AcaoMapper.toResponse(registration.revalidar(id)); }
+    @PostMapping("/{id}/revalidacao") public AcaoResponse revalidarCompat(@PathVariable Long id) { return AcaoMapper.toResponse(registration.revalidar(id)); }
+    @PostMapping("/revalidacao-em-lote") public com.example.carteirainvestimento.dto.acao.RevalidacaoLoteResponse revalidarTodos() { return registration.revalidarTodos(); }
+    @DeleteMapping("/{id}") @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT) public void delete(@PathVariable Long id) { registration.excluir(id); }
     @GetMapping("/{id}/historico") public List<HistoricoCotacaoResponse> history(@PathVariable Long id) { service.findById(id); return historicos.findByAcaoIdOrderByDataHoraCotacaoDesc(id).stream().map(HistoricoCotacaoMapper::toResponse).toList(); }
 }

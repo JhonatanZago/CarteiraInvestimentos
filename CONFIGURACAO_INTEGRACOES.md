@@ -29,3 +29,6 @@ ALPHA_VANTAGE_API_KEY=cole_a_chave_aqui
 ```
 
 Nunca publique o `.env`, tokens, cabeçalhos `Authorization` ou URLs com chaves embutidas.
+
+Para a matriz completa de fontes, fallback, rollback e verificação operacional,
+consulte [`docs/OPERACAO_INTEGRACOES.md`](docs/OPERACAO_INTEGRACOES.md).

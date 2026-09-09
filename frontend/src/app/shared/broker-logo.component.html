@@ -1,0 +1,7 @@
+<span class="broker-logo" [style.--broker-logo-size.px]="size()" [title]="displayName()">
+  @if (showImage()) {
+    <img [src]="validLogoUrl()" [alt]="'Logotipo de ' + displayName()" loading="lazy" decoding="async" (error)="handleImageError()" />
+  } @else {
+    <span class="broker-logo-fallback" [style.background]="fallbackBackground()" aria-hidden="true">{{ initials() }}</span>
+  }
+</span>

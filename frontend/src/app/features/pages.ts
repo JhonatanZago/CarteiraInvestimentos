@@ -22,15 +22,16 @@ import {
   EmptyStateComponent,
   LoadingComponent,
 } from '../shared/feedback.component';
+import { AssetLogoComponent } from '../shared/asset-logo.component';
+import { BrokerLogoComponent } from '../shared/broker-logo.component';
+import { formatMoney as money } from '../shared/money.util';
 
-const money = (value: number | null) =>
-  value === null ? 'Indisponível' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
 type TipoPreco = 'COTACAO_ATUAL' | 'PRECO_INFORMADO';
 
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule, EmptyStateComponent, LoadingComponent],
+  imports: [ReactiveFormsModule, EmptyStateComponent, LoadingComponent, BrokerLogoComponent],
   template: ` <section class="page">
     <header class="page-header">
       <div>
@@ -46,15 +47,11 @@ type TipoPreco = 'COTACAO_ATUAL' | 'PRECO_INFORMADO';
     </header>
     <section class="panel broker-form-card">
       <form class="broker-form-grid" [formGroup]="form" (ngSubmit)="save()">
-        <label>CNPJ<input formControlName="cnpj" placeholder="00.000.000/0000-00" aria-label="CNPJ" inputmode="numeric" /><small class="help-text">Informe o CNPJ da instituição.</small></label><label>CEP<input
-          formControlName="cep"
-          placeholder="00000-000" inputmode="numeric"
-          aria-label="CEP"
-        /></label><label>Número<input formControlName="numero" placeholder="Número" aria-label="Número" /></label><label>Complemento<input
-          formControlName="complemento"
-          placeholder="Complemento"
-          aria-label="Complemento"
-        /></label><button [disabled]="form.invalid || saving()">
+        <label class="form-field"><span class="field-label">CNPJ</span><input formControlName="cnpj" placeholder="00.000.000/0000-00" aria-label="CNPJ" inputmode="numeric" /><small class="help-text">Informe o CNPJ da instituição.</small></label>
+        <label class="form-field"><span class="field-label">CEP</span><input formControlName="cep" placeholder="00000-000" inputmode="numeric" aria-label="CEP" /><small class="help-text help-placeholder" aria-hidden="true">&nbsp;</small></label>
+        <label class="form-field"><span class="field-label">Número</span><input formControlName="numero" placeholder="Número" aria-label="Número" /></label>
+        <label class="form-field"><span class="field-label">Complemento</span><input formControlName="complemento" placeholder="Complemento" aria-label="Complemento" /></label>
+        <button [disabled]="form.invalid || saving()">
           {{ saving() ? 'Validando…' : 'Cadastrar' }}
         </button>
       </form>
@@ -79,11 +76,11 @@ type TipoPreco = 'COTACAO_ATUAL' | 'PRECO_INFORMADO';
           <tbody>
             @for (item of items(); track item.id) {
               <tr>
-                <td><span class="internal-id-badge" title="Identificador interno da corretora">#{{ item.id }}</span></td>
-                <td><strong>{{ item.nomeFantasia || item.razaoSocial }}</strong><small>{{ item.razaoSocial }}</small><small>{{ item.cidade }}{{ item.uf ? '/' + item.uf : '' }}</small></td>
+                <td><span class="entity-id-badge" [attr.title]="'Identificador interno: ' + item.id">#{{ item.id }}</span></td>
+                <td><div class="broker-identity"><app-broker-logo [cnpj]="item.cnpj" [name]="item.nomeFantasia || item.razaoSocial" [logoUrl]="item.logoUrl" [size]="44" /><span><strong>{{ item.nomeFantasia || item.razaoSocial }}</strong><small>{{ item.razaoSocial }}</small><small>{{ item.cidade }}{{ item.uf ? '/' + item.uf : '' }}</small></span></div></td>
                 <td>{{ item.cnpj }}</td>
                 <td><span class="status-badge">{{ item.statusValidacao || (item.validadaMercadoFinanceiro ? 'VALIDADA' : 'AGUARDANDO_VALIDACAO') }}</span><small>{{ item.motivoValidacao }}</small></td>
-                <td><button type="button" (click)="revalidate(item)" [disabled]="revalidating() === item.id">{{ revalidating() === item.id ? 'Validando…' : 'Validar novamente' }}</button></td>
+                <td><button type="button" (click)="revalidate(item)" [disabled]="revalidating() === item.id || deleting()">{{ revalidating() === item.id ? 'Validando…' : 'Validar novamente' }}</button><button type="button" class="danger" (click)="confirmDelete(item)" [disabled]="deleting()">Excluir</button></td>
               </tr>
             }
           </tbody>
@@ -101,6 +98,7 @@ export class CorretorasPage {
   readonly saving = signal(false);
   readonly revalidating = signal<number | null>(null);
   readonly error = signal('');
+  readonly deleting = signal(false);
   readonly form = this.fb.nonNullable.group({
     cnpj: ['', Validators.required],
     cep: ['', Validators.required],
@@ -117,12 +115,22 @@ export class CorretorasPage {
       this.notice.show('Corretora revalidada.', 'success');
     });
   }
+  confirmDelete(item: Corretora): void {
+    const nome = item.nomeFantasia || item.razaoSocial;
+    if (!window.confirm(`Deseja excluir ${nome}? Esta ação não poderá ser desfeita.`) || this.deleting()) return;
+    this.deleting.set(true);
+    this.api.delete(item.id).pipe(finalize(() => this.deleting.set(false))).subscribe({
+      next: () => { this.items.update(items => items.filter(current => current.id !== item.id)); this.notice.show('Corretora excluída com sucesso.', 'success'); },
+      error: (error) => this.notice.show(error?.error?.message ?? 'Não foi possível excluir a corretora.', 'error'),
+    });
+  }
+
   load(): void {
     this.loading.set(true);
     this.api
       .list()
       .pipe(finalize(() => this.loading.set(false)))
-      .subscribe((page) => this.items.set(page.content));
+      .subscribe({ next: (page) => this.items.set(page.content), error: (error) => this.error.set(error?.error?.message ?? 'Não foi possível carregar os ativos.') });
   }
 
   save(): void {
@@ -149,7 +157,7 @@ export class CorretorasPage {
 
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, EmptyStateComponent, LoadingComponent],
+  imports: [ReactiveFormsModule, RouterLink, EmptyStateComponent, LoadingComponent, AssetLogoComponent, ConfirmDialogComponent],
   template: ` <section class="page">
     <header class="page-header">
       <div>
@@ -175,6 +183,7 @@ export class CorretorasPage {
           {{ saving() ? 'Cadastrando…' : 'Cadastrar ação' }}
         </button>
       </form>
+      @if (error()) { <p role="alert" class="notice error">{{ error() }}</p> }
     </section>
     @if (loading()) {
       <app-loading />
@@ -195,12 +204,12 @@ export class CorretorasPage {
           <tbody>
             @for (item of items(); track item.id) {
               <tr>
-                <td><span class="internal-id-badge" title="Identificador interno do ativo">#{{ item.id }}</span></td>
+                <td><span class="entity-id-badge" [attr.title]="'Identificador interno: ' + item.id">#{{ item.id }}</span></td>
                 <td>
-                  <a class="ticker-badge" [routerLink]="['/historico', item.id]">{{ item.ticker }}</a>
+                  <a class="ticker-badge" [routerLink]="['/historico', item.id]"><app-asset-logo [ticker]="item.ticker" [companyName]="item.nomeEmpresa" [logoUrl]="item.logoUrl" [size]="32" />{{ item.ticker.trim().toUpperCase() }}</a>
                 </td>
                 <td>{{ item.nomeEmpresa }}</td>
-                <td>{{ money(item.cotacaoAtual) }}</td>
+                <td>{{ money(item.cotacaoAtual, item.moeda) }}</td>
                 <td>
                   <button
                     class="secondary"
@@ -209,6 +218,8 @@ export class CorretorasPage {
                   >
                     Atualizar
                   </button>
+                  <button class="danger" type="button" [disabled]="deleting()" [attr.title]="'Excluir ativo'" [attr.aria-label]="'Excluir ativo ' + item.ticker" (click)="requestDelete(item)">Excluir</button>
+                  <button class="secondary" type="button" [disabled]="revalidating() === item.id" (click)="revalidate(item)">{{ revalidating() === item.id ? 'Validando…' : 'Validar mercado' }}</button>
                 </td>
               </tr>
             }
@@ -216,6 +227,7 @@ export class CorretorasPage {
         </table>
       </section>
     }
+    <app-confirm-dialog [open]="!!pendingDelete()" [title]="'Excluir ativo?'" [detail]="deleteError() || (pendingDelete() ? 'Deseja excluir ' + pendingDelete()!.ticker + ' — ' + pendingDelete()!.nomeEmpresa + '? Esta ação não poderá ser desfeita.' : '')" confirmLabel="Excluir ativo" (cancelled)="pendingDelete.set(null); deleteError.set('')" (confirmed)="deleteAsset()" />
   </section>`,
 })
 export class AcoesPage {
@@ -227,6 +239,11 @@ export class AcoesPage {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly refreshing = signal<number | null>(null);
+  readonly pendingDelete = signal<Acao | null>(null);
+  readonly deleting = signal(false);
+  readonly deleteError = signal('');
+  readonly revalidating = signal<number | null>(null);
+  readonly error = signal('');
   readonly form = this.fb.nonNullable.group({
     ticker: ['', Validators.required],
     mercado: ['BRASIL' as 'BRASIL' | 'EUA', Validators.required],
@@ -244,17 +261,19 @@ export class AcoesPage {
   save(): void {
     if (!this.form.valid || this.saving()) return;
     this.saving.set(true);
+    this.error.set('');
     this.api
-      .create({ ...this.form.getRawValue(), ticker: this.form.controls.ticker.value.trim().toUpperCase() })
+      .create({ ...this.form.getRawValue(), ticker: this.form.controls.ticker.value.trim().toUpperCase(), selectedCountryCode: this.form.controls.mercado.value === 'BRASIL' ? 'BR' : 'US' })
       .pipe(finalize(() => this.saving.set(false)))
-      .subscribe(() => {
+      .subscribe({ next: () => {
         this.notice.show('Ação cadastrada.', 'success');
         this.form.reset({ ticker: '', mercado: 'BRASIL' });
         this.load();
-      });
+      }, error: (error) => this.error.set(error?.error?.message ?? 'Não foi possível cadastrar a ação. Verifique o ticker, mercado e a disponibilidade da cotação.') });
   }
   lookup(ticker: string): void {
-    if (ticker) this.api.getByTicker(ticker).subscribe((item) => this.items.set([item]));
+    const normalizedTicker = ticker.trim().toUpperCase();
+    if (normalizedTicker) this.api.getByTicker(normalizedTicker).subscribe({ next: (item) => this.items.set([item]), error: (error) => this.error.set(error?.error?.message ?? 'Ativo não encontrado.') });
   }
   refresh(item: Acao): void {
     this.refreshing.set(item.id);
@@ -266,6 +285,9 @@ export class AcoesPage {
         this.load();
       });
   }
+  requestDelete(item: Acao): void { if (!this.deleting()) { this.deleteError.set(''); this.pendingDelete.set(item); } }
+  deleteAsset(): void { const item = this.pendingDelete(); if (!item || this.deleting()) return; this.deleting.set(true); this.api.delete(item.id).pipe(finalize(() => this.deleting.set(false))).subscribe({ next: () => { this.items.update(items => items.filter(current => current.id !== item.id)); this.pendingDelete.set(null); this.deleteError.set(''); this.notice.show('Ativo excluído com sucesso.', 'success'); }, error: (error) => { const message = error?.error?.message ?? (error?.status === 409 ? 'Este ativo está vinculado a uma carteira ou possui histórico financeiro.' : 'Não foi possível excluir o ativo.'); this.deleteError.set(message); this.notice.show(message, 'error'); } }); }
+  revalidate(item: Acao): void { if (this.revalidating()) return; this.revalidating.set(item.id); this.api.revalidate(item.id).pipe(finalize(() => this.revalidating.set(null))).subscribe({ next: updated => { this.items.update(items => items.map(current => current.id === updated.id ? updated : current)); this.notice.show('Mercado, moeda e cotação revalidados.', 'success'); }, error: () => this.notice.show('Não foi possível revalidar este ativo agora.', 'error') }); }
 }
 
 @Component({
@@ -276,6 +298,8 @@ export class AcoesPage {
     EmptyStateComponent,
     LoadingComponent,
     ConfirmDialogComponent,
+    AssetLogoComponent,
+    BrokerLogoComponent,
   ],
   template: ` <section class="page">
     <header class="page-header">
@@ -326,17 +350,18 @@ export class AcoesPage {
               <label class="form-field" for="acaoId">Ação<select id="acaoId" formControlName="acaoId" aria-label="Ação"><option [ngValue]="null">Selecione uma ação</option>@for (acao of acoes(); track acao.id) {<option [ngValue]="acao.id">#{{ acao.id }} — {{ acao.ticker }} — {{ acao.nomeEmpresa }}</option>}</select></label>
               <label class="form-field" for="corretoraId">Corretora<select id="corretoraId" formControlName="corretoraId" aria-label="Corretora"><option [ngValue]="null">Selecione uma corretora</option>@for (corretora of corretoras(); track corretora.id) {<option [ngValue]="corretora.id">#{{ corretora.id }} — {{ corretora.nomeFantasia || corretora.razaoSocial }}</option>}</select></label>
             </div>
+            @if (selectedCorretora(); as corretora) { <div class="selected-broker-preview"><app-broker-logo [cnpj]="corretora.cnpj" [name]="corretora.nomeFantasia || corretora.razaoSocial" [logoUrl]="corretora.logoUrl" [size]="36" /><span>{{ corretora.nomeFantasia || corretora.razaoSocial }}</span></div> }
             @if (selectedAcao(); as acao) {
               <section class="asset-quote-card">
-                <div><small>Ticker</small><strong>{{ acao.ticker }}</strong></div><div><small>Empresa</small><strong>{{ acao.nomeEmpresa }}</strong></div><div><small>Mercado</small><strong>{{ acao.mercado }}</strong></div>
-                @if (cotacaoDisponivel()) {<div><small>Cotação atual</small><strong>{{ money(acao.cotacaoAtual!) }}</strong></div><div><small>Atualização</small><strong>{{ acao.dataHoraCotacao || 'data indisponível' }}</strong></div>} @else {<div class="asset-quote-unavailable">Cotação atual indisponível. Não foi possível calcular o valor atual.</div>}
+                <div class="asset-quote-identity"><app-asset-logo [ticker]="acao.ticker" [companyName]="acao.nomeEmpresa" [logoUrl]="acao.logoUrl" [size]="40" /><span><small>Ticker</small><strong>{{ acao.ticker.trim().toUpperCase() }}</strong></span></div><div><small>Empresa</small><strong>{{ acao.nomeEmpresa }}</strong></div><div><small>Mercado</small><strong>{{ acao.mercado }}</strong></div>
+            @if (cotacaoDisponivel()) {<div><small>Cotação atual</small><strong>{{ money(acao.cotacaoAtual!, acao.moeda) }}</strong></div><div><small>Atualização</small><strong>{{ acao.dataHoraCotacao || 'data indisponível' }}</strong></div>} @else {<div class="asset-quote-unavailable">Cotação atual indisponível. Não foi possível calcular o valor atual.</div>}
               </section>
               @if (cotacaoDesatualizada()) {<p class="notice warning">A cotação pode estar desatualizada.</p>}
             }
             <fieldset class="price-mode-section"><legend>Tipo de preço</legend><div class="price-mode-options"><label class="price-mode-option"><input type="radio" name="tipoPreco" [checked]="tipoPreco() === 'COTACAO_ATUAL'" [disabled]="!cotacaoDisponivel()" (change)="setTipoPreco('COTACAO_ATUAL')" /><span>Usar cotação atual</span></label><label class="price-mode-option"><input type="radio" name="tipoPreco" [checked]="tipoPreco() === 'PRECO_INFORMADO'" (change)="setTipoPreco('PRECO_INFORMADO')" /><span>Informar preço de compra</span></label></div></fieldset>
             <div class="position-fields">
               <label class="form-field">Quantidade<input type="number" formControlName="quantidade" placeholder="Quantidade" aria-label="Quantidade" /></label>
-              <label class="form-field">{{ tipoPreco() === 'PRECO_INFORMADO' ? 'Preço de compra por unidade' : 'Preço médio' }}<input type="number" formControlName="precoMedio" placeholder="Preço médio" aria-label="Preço médio" [readOnly]="tipoPreco() === 'COTACAO_ATUAL'" />@if (tipoPreco() === 'PRECO_INFORMADO') {<small class="field-help">Informe o valor efetivamente pago por unidade.</small>}@if (diferencaPrecoInformado(); as diferenca) {<small class="price-difference">O preço informado está {{ diferenca }}% {{ diferenca > 0 ? 'acima' : 'abaixo' }} da cotação atual.</small>}</label>
+              <label class="form-field">Preço atual<input type="number" formControlName="precoMedio" placeholder="Preço atual" aria-label="Preço médio" [readOnly]="tipoPreco() === 'COTACAO_ATUAL'" />@if (tipoPreco() === 'PRECO_INFORMADO') {<small class="field-help">Informe o valor efetivamente pago por unidade.</small>}@if (diferencaPrecoInformado(); as diferenca) {<small class="price-difference">O preço informado está {{ diferenca }}% {{ diferenca > 0 ? 'acima' : 'abaixo' }} da cotação atual.</small>}</label>
               <label class="form-field">Data da primeira compra<input type="date" formControlName="dataPrimeiraCompra" aria-label="Data da compra" /></label>
               <button class="position-submit" [disabled]="positionForm.invalid || saving() || !acoes().length || !corretoras().length">{{ editingPosition() ? 'Salvar posição' : 'Adicionar posição' }}</button>
             </div>
@@ -364,19 +389,22 @@ export class AcoesPage {
               <tbody>
                 @for (position of positions(); track position.id) {
                   <tr>
-                    <td><strong>{{ position.ticker }}</strong><small>{{ position.nomeEmpresa }}</small></td>
-                    <td>{{ position.quantidade }}</td>
-                    <td>{{ money(position.precoMedio) }}</td>
-                    <td>{{ position.cotacaoAtual === null ? 'Indisponível' : money(position.cotacaoAtual) }}</td>
-                    <td>{{ money(position.valorInvestido) }}</td>
-                    <td>{{ position.valorAtual === null ? 'Indisponível' : money(position.valorAtual) }}</td>
-                    <td
+                    <td class="asset-column"><div class="asset-cell"><app-asset-logo [ticker]="position.ticker" [companyName]="position.nomeEmpresa" [logoUrl]="position.logoUrl" [size]="40" /><span><strong class="asset-ticker">{{ position.ticker.trim().toUpperCase() }}</strong><small class="asset-company-name">{{ position.nomeEmpresa }}</small></span></div></td>
+                    <td class="numeric-cell quantity-cell">{{ position.quantidade }}</td>
+                    <td class="numeric-cell">{{ money(position.precoMedio, position.moeda) }}</td>
+                    <td class="numeric-cell">{{ position.cotacaoAtual === null ? 'Indisponível' : money(position.cotacaoAtual, position.moeda) }}</td>
+                    <td class="numeric-cell">{{ money(position.valorInvestido, position.moeda) }}</td>
+                    <td class="numeric-cell">{{ position.valorAtual === null ? 'Indisponível' : money(position.valorAtual, position.moeda) }}</td>
+                    <td class="numeric-cell result-cell"
                       [class.positive]="position.resultado !== null && position.resultado > 0"
                       [class.negative]="position.resultado !== null && position.resultado < 0"
+                      [class.value-positive]="position.resultado !== null && position.resultado > 0"
+                      [class.value-negative]="position.resultado !== null && position.resultado < 0"
+                      [class.value-neutral]="position.resultado === null || position.resultado === 0"
                     >
-                      {{ position.resultado === null ? 'Indisponível' : money(position.resultado) }}
+                      {{ position.resultado === null ? 'Indisponível' : money(position.resultado, position.moeda) }}
                     </td>
-                    <td [class.positive]="position.rentabilidadePercentual !== null && position.rentabilidadePercentual > 0" [class.negative]="position.rentabilidadePercentual !== null && position.rentabilidadePercentual < 0">{{ position.rentabilidadePercentual === null ? 'Indisponível' : position.rentabilidadePercentual + '%' }}</td>
+                    <td class="numeric-cell profitability-cell" [class.positive]="position.rentabilidadePercentual !== null && position.rentabilidadePercentual > 0" [class.negative]="position.rentabilidadePercentual !== null && position.rentabilidadePercentual < 0" [class.value-positive]="position.rentabilidadePercentual !== null && position.rentabilidadePercentual > 0" [class.value-negative]="position.rentabilidadePercentual !== null && position.rentabilidadePercentual < 0" [class.value-neutral]="position.rentabilidadePercentual === null || position.rentabilidadePercentual === 0">{{ position.rentabilidadePercentual === null ? 'Indisponível' : position.rentabilidadePercentual.toFixed(2) + '%' }}</td>
                     <td><div class="position-actions">
                       <button class="secondary" (click)="editPosition(position)">Editar</button>
                       <button class="danger" (click)="removePosition(position)">Excluir</button>
@@ -437,6 +465,7 @@ export class CarteirasPage {
   readonly tipoPreco = signal<TipoPreco>('COTACAO_ATUAL');
   readonly selectedAcaoId = signal<number | null>(null);
   readonly selectedAcao = computed(() => this.acoes().find((acao) => acao.id === this.selectedAcaoId()) ?? null);
+  readonly selectedCorretora = computed(() => this.corretoras().find((corretora) => corretora.id === this.positionForm.controls.corretoraId.value) ?? null);
   readonly cotacaoDisponivel = computed(() => (this.selectedAcao()?.cotacaoAtual ?? 0) > 0);
   readonly cotacaoDesatualizada = computed(() => {
     const dataHora = this.selectedAcao()?.dataHoraCotacao;
@@ -599,7 +628,7 @@ export class CarteirasPage {
 
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule, EmptyStateComponent, LoadingComponent],
+  imports: [ReactiveFormsModule, EmptyStateComponent, LoadingComponent, AssetLogoComponent],
   template: ` <section class="page">
     <header class="page-header">
       <div>
@@ -607,6 +636,7 @@ export class CarteirasPage {
         <p class="muted">Pontos retornados pela API, do mais recente ao mais antigo.</p>
       </div>
     </header>
+    @if (acao(); as ativo) { <section class="panel asset-history-heading"><app-asset-logo [ticker]="ativo.ticker" [companyName]="ativo.nomeEmpresa" [logoUrl]="ativo.logoUrl" [size]="40" /><div><span class="ticker-badge">{{ ativo.ticker.trim().toUpperCase() }}</span><small>{{ ativo.nomeEmpresa }}</small></div></section> }
     <section class="panel portfolio-list-panel">
       <form [formGroup]="form" (ngSubmit)="load()">
         <input
@@ -663,6 +693,7 @@ export class HistoricoPage {
   private readonly route = inject(ActivatedRoute);
   readonly money = money;
   readonly items = signal<HistoricoCotacao[]>([]);
+  readonly acao = signal<Acao | null>(null);
   readonly loading = signal(false);
   readonly form = this.fb.nonNullable.group({ acaoId: [0, Validators.min(1)] });
   readonly max = computed(() => Math.max(...this.items().map((item) => item.valor), 1));
@@ -670,6 +701,7 @@ export class HistoricoPage {
     const id = Number(this.route.snapshot.paramMap.get('acaoId'));
     if (id > 0) {
       this.form.controls.acaoId.setValue(id);
+      this.api.getById(id).subscribe({ next: (acao) => this.acao.set(acao) });
       this.load();
     }
   }

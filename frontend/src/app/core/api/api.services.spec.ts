@@ -22,4 +22,22 @@ describe('typed API services', () => {
     api.createPosition(4, { acaoId: 2, corretoraId: 3, quantidade: 1, precoMedio: 10, dataPrimeiraCompra: '2026-08-01' }).subscribe();
     const position = http.expectOne('/api/v1/carteiras/4/posicoes'); expect(position.request.method).toBe('POST'); position.flush({});
   });
+
+  it('preserves validated market, currency and logo metadata from the asset response', () => {
+    configure(); const http = TestBed.inject(HttpTestingController); const api = TestBed.inject(AcoesApiService);
+    let received: any;
+    api.getById(3).subscribe(value => received = value);
+    const request = http.expectOne('/api/v1/acoes/3');
+    expect(request.request.method).toBe('GET');
+    request.flush({
+      id: 3, ticker: 'AAPL', nomeEmpresa: 'Apple Inc.', mercado: 'EUA', moeda: 'USD',
+      cotacaoAtual: 191.32, dataHoraCotacao: '2026-09-06T12:00:00Z', logoUrl: 'https://example.com/aapl.png',
+      listingCountryCode: 'US', exchange: 'NASDAQ', exchangeMic: 'XNAS', dataSource: 'provider',
+    });
+    expect(received.moeda).toBe('USD');
+    expect(received.listingCountryCode).toBe('US');
+    expect(received.exchange).toBe('NASDAQ');
+    expect(received.exchangeMic).toBe('XNAS');
+    expect(received.logoUrl).toBe('https://example.com/aapl.png');
+  });
 });
