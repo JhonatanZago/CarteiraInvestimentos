@@ -124,6 +124,14 @@ export interface PosicaoRequest {
   dataPrimeiraCompra: string;
 }
 
+export interface VendaRequest { posicaoId: number; quantidade: number; precoVenda: number; taxas: number; dataVenda: string; moeda?: string; }
+export interface Venda {
+  id: number; carteiraId: number; posicaoId: number; ticker: string; nomeEmpresa: string; logoUrl?: string | null;
+  quantidade: number; quantidadeDisponivelAntes?: number | null; quantidadeRestante?: number | null;
+  precoMedio: number; precoVenda: number; taxas: number; valorBruto: number; custoPosicao: number;
+  resultadoRealizado: number; rentabilidadePercentual: number; moeda: string; dataVenda: string;
+}
+
 export interface DashboardCarteira {
   carteiraId: number;
   valorInvestido: number;

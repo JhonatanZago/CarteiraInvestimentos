@@ -28,6 +28,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import com.example.carteirainvestimento.service.ExchangeRateService;
+import com.example.carteirainvestimento.service.VendaService;
+import com.example.carteirainvestimento.dto.venda.VendaRequest;
+import com.example.carteirainvestimento.dto.venda.VendaResponse;
 
 @RestController
 @io.swagger.v3.oas.annotations.tags.Tag(name = "Carteiras", description = "Carteiras e posicoes de investimento")
@@ -37,16 +40,22 @@ public class CarteiraController {
     private final CarteiraService carteiras;
     private final AtivoCarteiraService ativos;
     private final ExchangeRateService exchangeRates;
+    private final VendaService vendas;
 
     public CarteiraController(CarteiraService carteiras, AtivoCarteiraService ativos) {
-        this(carteiras, ativos, null);
+        this(carteiras, ativos, null, null);
+    }
+
+    public CarteiraController(CarteiraService carteiras, AtivoCarteiraService ativos, ExchangeRateService exchangeRates) {
+        this(carteiras, ativos, exchangeRates, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
-    public CarteiraController(CarteiraService carteiras, AtivoCarteiraService ativos, ExchangeRateService exchangeRates) {
+    public CarteiraController(CarteiraService carteiras, AtivoCarteiraService ativos, ExchangeRateService exchangeRates, VendaService vendas) {
         this.carteiras = carteiras;
         this.ativos = ativos;
         this.exchangeRates = exchangeRates;
+        this.vendas = vendas;
     }
 
     @PostMapping
@@ -122,6 +131,20 @@ public class CarteiraController {
     public void excluirPosicao(@PathVariable Long carteiraId, @PathVariable Long posicaoId) {
         ativos.excluir(carteiraId, posicaoId);
     }
+
+    @PostMapping("/{carteiraId}/vendas/simulacao")
+    public VendaResponse simularVenda(@PathVariable Long carteiraId, @Valid @RequestBody VendaRequest request) {
+        return vendas.simular(carteiraId, request);
+    }
+
+    @PostMapping("/{carteiraId}/vendas")
+    @ResponseStatus(HttpStatus.CREATED)
+    public VendaResponse confirmarVenda(@PathVariable Long carteiraId, @Valid @RequestBody VendaRequest request) {
+        return vendas.confirmar(carteiraId, request);
+    }
+
+    @GetMapping("/{carteiraId}/vendas")
+    public List<VendaResponse> listarVendas(@PathVariable Long carteiraId) { return vendas.listar(carteiraId); }
 
     private AtivoCarteiraResponse map(AtivoCarteira ativo) {
         var cambio = exchangeRates == null ? null : exchangeRates.usdToBrl();

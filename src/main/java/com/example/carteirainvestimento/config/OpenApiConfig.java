@@ -19,7 +19,7 @@ public class OpenApiConfig {
                 .version("v1")
                 .description("API v1 para corretoras, acoes, carteiras, posicoes, historico e dashboard."))
                 .tags(java.util.List.of(new Tag().name("Corretoras"), new Tag().name("Acoes"),
-                        new Tag().name("Carteiras"), new Tag().name("Dashboard")))
+                        new Tag().name("Carteiras"), new Tag().name("Vendas"), new Tag().name("Dashboard")))
                 .components(new Components().addResponses("ValidationError", new ApiResponse().description("VALIDATION_ERROR: dados invalidos"))
                         .addResponses("DuplicateResource", new ApiResponse().description("DUPLICATE_RESOURCE: recurso ja cadastrado"))
                         .addResponses("BusinessRule", new ApiResponse().description("BUSINESS_RULE_VIOLATION: regra de negocio violada"))

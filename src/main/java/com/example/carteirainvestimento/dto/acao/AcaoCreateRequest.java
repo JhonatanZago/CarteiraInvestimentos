@@ -8,7 +8,6 @@ import jakarta.validation.constraints.NotBlank;
 public record AcaoCreateRequest(@NotBlank String ticker, @NotNull CountryCode countryCode) {
     /** Compatibilidade para testes internos legados; o contrato HTTP é countryCode. */
     public AcaoCreateRequest(String ticker, Mercado mercado, String countryCode) {
-        this(ticker, CountryCode.valueOf(countryCode == null || countryCode.isBlank()
-                ? (mercado == Mercado.BRASIL ? "BR" : "US") : countryCode.trim().toUpperCase()));
+        this(ticker, countryCode == null || countryCode.isBlank() ? null : CountryCode.valueOf(countryCode.trim().toUpperCase()));
     }
 }

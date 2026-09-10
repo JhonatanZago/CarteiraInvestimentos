@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { API_BASE_URL } from './api-url.token';
 import {
   Acao, AcaoCreateRequest, Carteira, CarteiraRequest, Corretora, CorretoraCreateRequest, CurrencyAnalysis,
-  DashboardCarteira, HistoricoCotacao, IncomeSummary, MarketIndicator, PageResponse, PortfolioEvolutionPoint, Posicao, PosicaoRequest,
+  DashboardCarteira, HistoricoCotacao, IncomeSummary, MarketIndicator, PageResponse, PortfolioEvolutionPoint, Posicao, PosicaoRequest, Venda, VendaRequest,
 } from './api.models';
 
 function pageParams(page = 0, size = 20): { params: HttpParams } {
@@ -66,6 +66,9 @@ export class CarteirasApiService {
   createPosition(carteiraId: number, request: PosicaoRequest): Observable<Posicao> { return this.http.post<Posicao>(`${this.baseUrl}/carteiras/${carteiraId}/posicoes`, request); }
   updatePosition(carteiraId: number, posicaoId: number, request: PosicaoRequest): Observable<Posicao> { return this.http.put<Posicao>(`${this.baseUrl}/carteiras/${carteiraId}/posicoes/${posicaoId}`, request); }
   deletePosition(carteiraId: number, posicaoId: number): Observable<void> { return this.http.delete<void>(`${this.baseUrl}/carteiras/${carteiraId}/posicoes/${posicaoId}`); }
+  simulateSale(carteiraId: number, request: VendaRequest): Observable<Venda> { return this.http.post<Venda>(`${this.baseUrl}/carteiras/${carteiraId}/vendas/simulacao`, request); }
+  sell(carteiraId: number, request: VendaRequest): Observable<Venda> { return this.http.post<Venda>(`${this.baseUrl}/carteiras/${carteiraId}/vendas`, request); }
+  listSales(carteiraId: number): Observable<Venda[]> { return this.http.get<Venda[]>(`${this.baseUrl}/carteiras/${carteiraId}/vendas`); }
 }
 
 @Injectable({ providedIn: 'root' })

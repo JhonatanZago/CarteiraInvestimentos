@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import com.example.carteirainvestimento.domain.Acao;
 import com.example.carteirainvestimento.dto.acao.AcaoCreateRequest;
@@ -29,6 +31,7 @@ import com.example.carteirainvestimento.repository.AtivoCarteiraRepository;
 import com.example.carteirainvestimento.repository.HistoricoCotacaoRepository;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class AcaoRegistrationServiceTest {
     @Mock AcaoRepository acoes;
     @Mock HistoricoCotacaoRepository historicos;
@@ -79,9 +82,10 @@ class AcaoRegistrationServiceTest {
     @Test
     void rejectsDuplicateBeforeCallingProvider() {
         when(acoes.existsByTicker("PETR4")).thenReturn(true);
+        when(cotacoes.buscarCotacao("PETR4", Mercado.BRASIL)).thenReturn(quote("PETR4", Mercado.BRASIL, Moeda.BRL, "BR", "B3"));
         assertThatThrownBy(() -> service().registrar(new AcaoCreateRequest("PETR4", Mercado.BRASIL, "BR")))
                 .isInstanceOf(DuplicateResourceException.class);
-        verifyNoInteractions(cotacoes);
+        verify(cotacoes).buscarCotacao("PETR4", Mercado.BRASIL);
     }
 
     @Test

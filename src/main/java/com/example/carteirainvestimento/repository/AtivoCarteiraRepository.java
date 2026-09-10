@@ -4,8 +4,13 @@ import com.example.carteirainvestimento.domain.AtivoCarteira;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
+import java.util.Optional;
 
 public interface AtivoCarteiraRepository extends JpaRepository<AtivoCarteira, Long> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<AtivoCarteira> findByIdAndCarteiraId(Long id, Long carteiraId);
     @Query("select distinct a.carteira.id from AtivoCarteira a where a.acao.id = :acaoId")
     List<Long> findCarteiraIdsByAcaoId(Long acaoId);
 

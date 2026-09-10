@@ -53,6 +53,7 @@ public class AcaoRegistrationService {
     public Acao registrar(AcaoCreateRequest request) {
         String ticker = request.ticker().trim().toUpperCase();
         CountryCode selectedCountry = request.countryCode();
+        if (selectedCountry == null) throw new BusinessRuleException("Codigo de pais obrigatorio");
         if (ticker.isBlank()) throw new BusinessRuleException("Ticker invalido");
         CotacaoConsulta cotacao;
         try {
@@ -70,6 +71,7 @@ public class AcaoRegistrationService {
         } catch (ExternalIntegrationException integrationFailure) {
             try {
                 CotacaoConsulta detected = cotacaoFacade.buscarCotacao(ticker, selectedCountry.outro().mercado());
+                if (detected == null) throw integrationFailure;
                 throw new com.example.carteirainvestimento.exception.AssetCountryMismatchException("O ticker " + ticker + " pertence ao mercado " + detected.listingCountryCode() + ".");
             } catch (ResourceNotFoundException | ExternalIntegrationException ignored) {
                 throw integrationFailure;
