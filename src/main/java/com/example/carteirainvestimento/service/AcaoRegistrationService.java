@@ -40,9 +40,11 @@ public class AcaoRegistrationService {
     @Transactional
     public void excluir(Long id) {
         Acao acao = acaoRepository.findById(id).orElseThrow(() -> new com.example.carteirainvestimento.exception.ResourceNotFoundException("Acao nao encontrada"));
-        if (!ativos.findCarteiraIdsByAcaoId(id).isEmpty() || historicoRepository.existsByAcaoId(id)
+        if (!ativos.findCarteiraIdsByAcaoId(id).isEmpty()
                 || (movimentacoes != null && movimentacoes.existsByAcaoId(id)))
-            throw new AssetInUseException("Este ativo nao pode ser excluido porque esta sendo utilizado em uma ou mais carteiras ou possui historico financeiro.");
+            throw new AssetInUseException("Este ativo nao pode ser excluido porque esta sendo utilizado em uma carteira ou possui movimentacoes financeiras.");
+        // Historico de cotacao é dado técnico do próprio ativo; remova-o explicitamente, sem cascade financeiro.
+        historicoRepository.deleteByAcaoId(id);
         acaoRepository.delete(acao);
     }
     @Transactional

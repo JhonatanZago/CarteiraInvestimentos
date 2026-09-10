@@ -37,7 +37,7 @@ export class AcoesApiService {
   create(request: AcaoCreateRequest): Observable<Acao> { return this.http.post<Acao>(`${this.baseUrl}/acoes`, request); }
   getById(id: number): Observable<Acao> { return this.http.get<Acao>(`${this.baseUrl}/acoes/${id}`); }
   getByTicker(ticker: string): Observable<Acao> { return this.http.get<Acao>(`${this.baseUrl}/acoes/ticker/${ticker}`); }
-  refresh(id: number): Observable<Acao> { return this.http.post<Acao>(`${this.baseUrl}/acoes/${id}/atualizar-cotacao`, {}); }
+  refresh(id: number): Observable<Acao> { return this.http.post<Acao>(`${this.baseUrl}/acoes/${id}/atualizacao-cotacao`, {}); }
   delete(id: number): Observable<void> { return this.http.delete<void>(`${this.baseUrl}/acoes/${id}`); }
   history(id: number): Observable<HistoricoCotacao[]> { return this.http.get<HistoricoCotacao[]>(`${this.baseUrl}/acoes/${id}/historico`); }
   revalidate(id: number): Observable<Acao> { return this.http.post<Acao>(`${this.baseUrl}/acoes/${id}/revalidacao`, {}); }

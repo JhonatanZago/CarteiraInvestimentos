@@ -18,3 +18,8 @@
 ## 4. Consolidated positions accuracy
 
 - [x] 4.1 Consolidate dashboard positions by `acaoId`, calculate the open weighted-average cost from purchase and sale movements with `BigDecimal`/`HALF_EVEN` (falling back to persisted legacy positions when no movement history exists), expose quantity, average price and explicit currency, and render the real Visão geral table with currency-aware values, internal horizontal scrolling and aligned numeric columns; verify backend, frontend, build and visual route validation.
+
+## 5. Asset action reliability
+
+- [ ] 5.1 [P0] Standardize quote refresh on `POST /api/v1/acoes/{id}/atualizacao-cotacao`, preserve the established provider error contract, and make the Ativos row action use that route.
+- [ ] 5.2 [P1] Verify asset deletion keeps explicit referential-integrity blocking (`409 ASSET_IN_USE`) and that the connected confirmation dialog retains the row on failure and removes it on `204`.

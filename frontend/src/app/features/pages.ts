@@ -276,13 +276,16 @@ export class AcoesPage {
     if (normalizedTicker) this.api.getByTicker(normalizedTicker).subscribe({ next: (item) => this.items.set([item]), error: (error) => this.error.set(error?.error?.message ?? 'Ativo não encontrado.') });
   }
   refresh(item: Acao): void {
+    if (this.refreshing() === item.id) return;
     this.refreshing.set(item.id);
     this.api
       .refresh(item.id)
       .pipe(finalize(() => this.refreshing.set(null)))
-      .subscribe(() => {
-        this.notice.show('Cotação atualizada.', 'success');
-        this.load();
+      .subscribe({ next: (updated) => {
+        this.items.update(items => items.map(current => current.id === updated.id ? updated : current));
+        this.notice.show('Cotação atualizada com sucesso.', 'success');
+      }, error: (error) => {
+        this.notice.show(error?.error?.message ?? 'Não foi possível atualizar a cotação.', 'error');
       });
   }
   requestDelete(item: Acao): void { if (!this.deleting()) { this.deleteError.set(''); this.pendingDelete.set(item); } }

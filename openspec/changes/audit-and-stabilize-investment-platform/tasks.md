@@ -57,3 +57,8 @@
 - [x] 9.1 Run backend unit/integration/contract tests with external APIs mocked and verify decimal precision and migration behavior.
 - [x] 9.2 Run frontend typecheck, unit tests, production build, and route smoke tests against the real running app.
 - [x] 9.3 Update configuration/documentation with required environment variables, source/licensing notes, limitations, rollback, and operational verification evidence.
+
+## 10. Fonte EUA única
+
+- [ ] 10.1 [P0] Remover Alpha Vantage da configuração e da seleção de cotações; usar Twelve Data como única fonte de ações EUA e retornar erro de credencial configurada quando a fonte rejeitar a chave.
+- [ ] 10.2 [P1] Atualizar testes de integração/facade para Twelve Data e validar cadastro americano sem persistir dados incompletos.

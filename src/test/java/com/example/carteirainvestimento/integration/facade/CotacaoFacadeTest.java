@@ -18,13 +18,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class CotacaoFacadeTest {
 
     @Test
-    void selectsBrapiForBrazilAndAlphaVantageForUsa() {
+    void selectsBrapiForBrazilAndTwelveDataForUsa() {
         CotacaoAdapter brapi = adapter(Mercado.BRASIL, FonteCotacao.BRAPI);
-        CotacaoAdapter alphaVantage = adapter(Mercado.EUA, FonteCotacao.ALPHA_VANTAGE);
+        CotacaoAdapter alphaVantage = adapter(Mercado.EUA, FonteCotacao.TWELVE_DATA);
         CotacaoFacade facade = new CotacaoFacade(List.of(brapi, alphaVantage));
 
         assertThat(facade.buscarCotacao("PETR4", Mercado.BRASIL).fonte()).isEqualTo(FonteCotacao.BRAPI);
-        assertThat(facade.buscarCotacao("MSFT", Mercado.EUA).fonte()).isEqualTo(FonteCotacao.ALPHA_VANTAGE);
+        assertThat(facade.buscarCotacao("MSFT", Mercado.EUA).fonte()).isEqualTo(FonteCotacao.TWELVE_DATA);
     }
 
     @Test

@@ -40,7 +40,7 @@ public class AcaoController {
     @PostMapping public AcaoResponse create(@jakarta.validation.Valid @RequestBody AcaoCreateRequest request) { return AcaoMapper.toResponse(registration.registrar(request)); }
     @GetMapping("/{id}") public AcaoResponse get(@PathVariable Long id) { return AcaoMapper.toResponse(service.findById(id)); }
     @GetMapping("/ticker/{ticker}") public AcaoResponse getTicker(@PathVariable String ticker) { return AcaoMapper.toResponse(service.findByTicker(ticker)); }
-    @PostMapping("/{id}/atualizar-cotacao") public AcaoResponse refresh(@PathVariable Long id) { return AcaoMapper.toResponse(refresh.atualizar(id)); }
+    @PostMapping("/{id}/atualizacao-cotacao") public AcaoResponse refresh(@PathVariable Long id) { return AcaoMapper.toResponse(refresh.atualizar(id)); }
     @PostMapping("/{id}/revalidacao-mercado") public AcaoResponse revalidar(@PathVariable Long id) { return AcaoMapper.toResponse(registration.revalidar(id)); }
     @PostMapping("/{id}/revalidacao") public AcaoResponse revalidarCompat(@PathVariable Long id) { return AcaoMapper.toResponse(registration.revalidar(id)); }
     @PostMapping("/revalidacao-em-lote") public com.example.carteirainvestimento.dto.acao.RevalidacaoLoteResponse revalidarTodos() { return registration.revalidarTodos(); }

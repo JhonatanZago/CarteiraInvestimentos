@@ -50,6 +50,7 @@ public class GlobalExceptionHandler {
             case DUPLICATE_RESOURCE, ASSET_IN_USE -> HttpStatus.CONFLICT;
             case ASSET_MARKET_MISMATCH -> HttpStatus.UNPROCESSABLE_ENTITY;
             case EXTERNAL_INTEGRATION_ERROR -> HttpStatus.BAD_GATEWAY;
+            case PROVIDER_UNAUTHORIZED -> HttpStatus.SERVICE_UNAVAILABLE;
             case INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
     }
