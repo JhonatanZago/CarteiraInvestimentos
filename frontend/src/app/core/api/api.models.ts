@@ -66,10 +66,11 @@ export interface Acao {
   dataSource?: string | null;
 }
 
+export type CountryCode = 'BR' | 'US';
+
 export interface AcaoCreateRequest {
   ticker: string;
-  mercado: 'BRASIL' | 'EUA';
-  selectedCountryCode: string;
+  countryCode: CountryCode;
 }
 
 export interface HistoricoCotacao {

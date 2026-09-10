@@ -8,13 +8,15 @@ import com.example.carteirainvestimento.domain.HistoricoCotacao;
 import com.example.carteirainvestimento.dto.acao.AcaoCreateRequest;
 import com.example.carteirainvestimento.exception.BusinessRuleException;
 import com.example.carteirainvestimento.exception.DuplicateResourceException;
-import com.example.carteirainvestimento.exception.AssetMarketMismatchException;
+import com.example.carteirainvestimento.exception.AssetCountryMismatchException;
 import com.example.carteirainvestimento.exception.AssetInUseException;
 import com.example.carteirainvestimento.exception.ExternalIntegrationException;
 import com.example.carteirainvestimento.repository.AtivoCarteiraRepository;
 import com.example.carteirainvestimento.integration.dto.CotacaoConsulta;
 import com.example.carteirainvestimento.integration.facade.CotacaoFacade;
 import com.example.carteirainvestimento.enums.Moeda;
+import com.example.carteirainvestimento.enums.CountryCode;
+import com.example.carteirainvestimento.exception.ResourceNotFoundException;
 import com.example.carteirainvestimento.repository.AcaoRepository;
 import com.example.carteirainvestimento.repository.HistoricoCotacaoRepository;
 import com.example.carteirainvestimento.repository.MovimentacaoFinanceiraRepository;
@@ -50,24 +52,43 @@ public class AcaoRegistrationService {
     @Transactional
     public Acao registrar(AcaoCreateRequest request) {
         String ticker = request.ticker().trim().toUpperCase();
-        String selectedCountry = request.selectedCountryCode().trim().toUpperCase();
-        if (!selectedCountry.matches("[A-Z]{2}")) throw new BusinessRuleException("Codigo de pais invalido");
+        CountryCode selectedCountry = request.countryCode();
         if (ticker.isBlank()) throw new BusinessRuleException("Ticker invalido");
-        if (acaoRepository.existsByTicker(ticker)) throw new DuplicateResourceException("Ticker ja cadastrado");
-        CotacaoConsulta cotacao = cotacaoFacade.buscarCotacao(ticker, request.mercado());
+        CotacaoConsulta cotacao;
+        try {
+            cotacao = cotacaoFacade.buscarCotacao(ticker, selectedCountry.mercado());
+        } catch (ResourceNotFoundException notFound) {
+            // A busca secundária serve apenas para explicar o país correto; nunca cadastra.
+            try {
+                CotacaoConsulta detected = cotacaoFacade.buscarCotacao(ticker, selectedCountry.outro().mercado());
+                throw new AssetCountryMismatchException("O ticker " + ticker + " é negociado em "
+                        + (detected.mercado() == com.example.carteirainvestimento.enums.Mercado.BRASIL ? "Brasil" : "Estados Unidos")
+                        + ". Selecione " + (detected.mercado() == com.example.carteirainvestimento.enums.Mercado.BRASIL ? "Brasil." : "Estados Unidos."));
+            } catch (ResourceNotFoundException ignored) {
+                throw notFound;
+            }
+        } catch (ExternalIntegrationException integrationFailure) {
+            try {
+                CotacaoConsulta detected = cotacaoFacade.buscarCotacao(ticker, selectedCountry.outro().mercado());
+                throw new com.example.carteirainvestimento.exception.AssetCountryMismatchException("O ticker " + ticker + " pertence ao mercado " + detected.listingCountryCode() + ".");
+            } catch (ResourceNotFoundException | ExternalIntegrationException ignored) {
+                throw integrationFailure;
+            }
+        }
         if (cotacao == null) throw new ExternalIntegrationException("Fonte de cotacao nao retornou dados");
         String returnedTicker = cotacao.ticker() == null ? "" : cotacao.ticker().trim().toUpperCase();
         if (!ticker.equals(returnedTicker) || cotacao.valor() == null || cotacao.dataHoraCotacao() == null
                 || cotacao.mercado() == null || cotacao.moeda() == null)
             throw new BusinessRuleException("Ativo nao encontrado ou resposta incompleta da fonte");
-        if (cotacao.listingCountryCode() == null || !selectedCountry.equalsIgnoreCase(cotacao.listingCountryCode())
-                || cotacao.mercado() != request.mercado()
-                || (request.mercado() == com.example.carteirainvestimento.enums.Mercado.BRASIL && cotacao.moeda() != Moeda.BRL)
-                || (request.mercado() == com.example.carteirainvestimento.enums.Mercado.EUA && cotacao.moeda() != Moeda.USD)) {
+        if (cotacao.listingCountryCode() == null || !selectedCountry.name().equalsIgnoreCase(cotacao.listingCountryCode())
+                || cotacao.mercado() != selectedCountry.mercado()
+                || (selectedCountry == CountryCode.BR && cotacao.moeda() != Moeda.BRL)
+                || (selectedCountry == CountryCode.US && cotacao.moeda() != Moeda.USD)) {
             String pais = cotacao.mercado() == com.example.carteirainvestimento.enums.Mercado.BRASIL ? "Brasil" : "Estados Unidos";
             String moeda = cotacao.moeda() == null ? "moeda não informada" : cotacao.moeda().name();
-            throw new AssetMarketMismatchException("O ativo " + ticker + " é negociado em " + pais + " em " + moeda + ". Selecione o mercado correto.");
+            throw new AssetCountryMismatchException("O ativo " + ticker + " é negociado em " + pais + " em " + moeda + ". Selecione o mercado correto.");
         }
+        if (acaoRepository.existsByTicker(ticker)) throw new DuplicateResourceException("Ticker ja cadastrado");
         Acao acao = new Acao(); acao.setTicker(ticker); acao.setNomeEmpresa(cotacao.nomeEmpresa()); acao.setMercado(cotacao.mercado()); acao.setMoeda(cotacao.moeda()); acao.setCotacaoAtual(cotacao.valor()); acao.setDataHoraCotacao(cotacao.dataHoraCotacao()); acao.setLogoUrl(cotacao.logoUrl() != null ? cotacao.logoUrl() : AcaoLogoRegistry.logoFor(ticker));
         acao.setListingCountryCode(cotacao.listingCountryCode()); acao.setExchange(cotacao.exchange()); acao.setExchangeMic(cotacao.exchangeMic()); acao.setDataSource(cotacao.fonte() == null ? null : cotacao.fonte().name());
         acao = acaoRepository.save(acao);

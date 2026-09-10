@@ -174,10 +174,11 @@ export class CorretorasPage {
     <section class="panel asset-form-card">
       <form class="asset-form-grid" [formGroup]="form" (ngSubmit)="save()">
         <label>Ticker<input formControlName="ticker" placeholder="Ex.: PETR4" aria-label="Ticker" /></label><small class="help-text">Código de negociação do ativo na bolsa.</small><select
-          formControlName="mercado"
-          aria-label="Mercado"
+          formControlName="countryCode"
+          aria-label="País de negociação"
         >
-          <option value="BRASIL">Brasil</option>
+          <option value="">Selecione o país</option>
+          <option value="BR">Brasil</option>
           <option value="EUA">Estados Unidos</option></select><small class="help-text">Brasil: B3. EUA: ações americanas.</small
         ><button [disabled]="form.invalid || saving()">
           {{ saving() ? 'Cadastrando…' : 'Cadastrar ação' }}
@@ -246,7 +247,7 @@ export class AcoesPage {
   readonly error = signal('');
   readonly form = this.fb.nonNullable.group({
     ticker: ['', Validators.required],
-    mercado: ['BRASIL' as 'BRASIL' | 'EUA', Validators.required],
+    countryCode: ['' as '' | 'BR' | 'US', Validators.required],
   });
   constructor() {
     this.load();
@@ -263,11 +264,11 @@ export class AcoesPage {
     this.saving.set(true);
     this.error.set('');
     this.api
-      .create({ ...this.form.getRawValue(), ticker: this.form.controls.ticker.value.trim().toUpperCase(), selectedCountryCode: this.form.controls.mercado.value === 'BRASIL' ? 'BR' : 'US' })
+      .create({ ticker: this.form.controls.ticker.value.trim().toUpperCase(), countryCode: String(this.form.controls.countryCode.value) === 'EUA' ? 'US' : this.form.controls.countryCode.value as 'BR' | 'US' })
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({ next: () => {
         this.notice.show('Ação cadastrada.', 'success');
-        this.form.reset({ ticker: '', mercado: 'BRASIL' });
+        this.form.reset({ ticker: '', countryCode: '' });
         this.load();
       }, error: (error) => this.error.set(error?.error?.message ?? 'Não foi possível cadastrar a ação. Verifique o ticker, mercado e a disponibilidade da cotação.') });
   }
@@ -286,7 +287,7 @@ export class AcoesPage {
         this.notice.show('Cotação atualizada com sucesso.', 'success');
       }, error: (error) => {
         this.notice.show(error?.error?.message ?? 'Não foi possível atualizar a cotação.', 'error');
-      });
+      }});
   }
   requestDelete(item: Acao): void { if (!this.deleting()) { this.deleteError.set(''); this.pendingDelete.set(item); } }
   deleteAsset(): void { const item = this.pendingDelete(); if (!item || this.deleting()) return; this.deleting.set(true); this.api.delete(item.id).pipe(finalize(() => this.deleting.set(false))).subscribe({ next: () => { this.items.update(items => items.filter(current => current.id !== item.id)); this.pendingDelete.set(null); this.deleteError.set(''); this.notice.show('Ativo excluído com sucesso.', 'success'); }, error: (error) => { const message = error?.error?.message ?? (error?.status === 409 ? 'Este ativo está vinculado a uma carteira ou possui histórico financeiro.' : 'Não foi possível excluir o ativo.'); this.deleteError.set(message); this.notice.show(message, 'error'); } }); }

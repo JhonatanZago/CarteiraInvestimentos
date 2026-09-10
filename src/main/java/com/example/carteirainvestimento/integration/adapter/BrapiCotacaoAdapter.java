@@ -33,7 +33,7 @@ public class BrapiCotacaoAdapter implements CotacaoAdapter {
     public boolean suporta(Mercado mercado) {
         // A BRAPI também cobre símbolos internacionais sem exigir token em
         // vários casos. A validação do mercado é feita após ler a moeda/bolsa.
-        return mercado == Mercado.BRASIL || mercado == Mercado.EUA;
+        return mercado == Mercado.BRASIL;
     }
 
     @Override

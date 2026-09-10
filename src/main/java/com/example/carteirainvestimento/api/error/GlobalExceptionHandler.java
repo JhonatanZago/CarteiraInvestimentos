@@ -48,7 +48,7 @@ public class GlobalExceptionHandler {
             case VALIDATION_ERROR, BUSINESS_RULE_VIOLATION -> HttpStatus.BAD_REQUEST;
             case RESOURCE_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case DUPLICATE_RESOURCE, ASSET_IN_USE -> HttpStatus.CONFLICT;
-            case ASSET_MARKET_MISMATCH -> HttpStatus.UNPROCESSABLE_ENTITY;
+            case ASSET_MARKET_MISMATCH, ASSET_COUNTRY_MISMATCH -> HttpStatus.UNPROCESSABLE_ENTITY;
             case EXTERNAL_INTEGRATION_ERROR -> HttpStatus.BAD_GATEWAY;
             case PROVIDER_UNAUTHORIZED -> HttpStatus.SERVICE_UNAVAILABLE;
             case INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;
