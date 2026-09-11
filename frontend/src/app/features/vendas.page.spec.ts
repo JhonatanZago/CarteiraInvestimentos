@@ -17,8 +17,8 @@ describe('VendasPage visual history state', () => {
     const fixture = TestBed.createComponent(VendasPage);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.bar-chart')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.metrics')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.history-card')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.realized-summary-grid')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.operations-history')).not.toBeNull();
     expect(fixture.nativeElement.textContent.replace(/\u00a0/g, ' ')).toContain('US$ 22.140,00');
     expect(fixture.nativeElement.textContent).toContain('Selecione uma posição');
   });
