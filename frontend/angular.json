@@ -62,7 +62,8 @@
               "src/auth-visual.scss",
               "src/auth-light.scss",
               "src/auth-fix.scss",
-              "src/auth-guarantee.scss"
+              "src/auth-guarantee.scss",
+              "src/notification-position.scss"
             ]
           },
           "configurations": {

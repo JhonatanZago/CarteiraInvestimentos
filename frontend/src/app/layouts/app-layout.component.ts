@@ -4,7 +4,7 @@ import { NotificationService } from '../core/feedback/notification.service';
 import { ThemeService } from '../core/theme/theme.service';
 import { AuthService } from '../core/auth/auth.service';
 
-@Component({selector:'app-app-layout',standalone:true,imports:[RouterLink,RouterLinkActive,RouterOutlet],templateUrl:'./app-layout.component.html',styleUrl:'./app-layout.component.scss'})
+@Component({selector:'app-app-layout',standalone:true,imports:[RouterLink,RouterLinkActive,RouterOutlet],templateUrl:'./app-layout.component.html',styleUrls:['./app-layout.component.scss','../../notification-position.scss']})
 export class AppLayoutComponent {
   readonly menuOpen=signal(false); readonly accountOpen=signal(false);
   readonly notifications=inject(NotificationService); readonly themeService=inject(ThemeService); readonly auth=inject(AuthService); private readonly router=inject(Router);

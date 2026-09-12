@@ -1,0 +1,4 @@
+/* Posicionamento global do container único de notificações. */
+.toasts{position:fixed!important;top:20px!important;right:20px!important;bottom:auto!important;left:auto!important;width:min(360px,calc(100vw - 32px))!important;max-width:calc(100vw - 32px)!important;z-index:2000!important;display:grid!important;gap:10px!important;pointer-events:none}
+.toasts .toast{pointer-events:auto;width:100%;box-sizing:border-box}
+@media(max-width:600px){.toasts{top:16px!important;right:16px!important;width:calc(100vw - 32px)!important;max-width:calc(100vw - 32px)!important}}
