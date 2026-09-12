@@ -44,7 +44,7 @@ public class MovimentacaoFinanceiraService {
     public MovimentacaoFinanceira registrar(Long carteiraId, Long acaoId, Long corretoraId,
             MovimentacaoFinanceiraRequest request) {
         validar(request);
-        Carteira carteira = carteiras.findById(carteiraId)
+        Carteira carteira = com.example.carteirainvestimento.security.CurrentUser.id().flatMap(uid -> carteiras.findByIdAndUsuarioId(carteiraId, uid)).or(() -> com.example.carteirainvestimento.security.CurrentUser.id().isPresent() ? java.util.Optional.empty() : carteiras.findById(carteiraId))
                 .orElseThrow(() -> new ResourceNotFoundException("Carteira nao encontrada"));
         Acao acao = acoes.findById(acaoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Acao nao encontrada"));

@@ -1,1544 +1,620 @@
-# SPEC — Carteira de Investimentos
+Implemente no projeto CarteiraInvestimentos a tela de autenticação baseada exatamente na segunda imagem de referência anexada: login centralizado em um card escuro translúcido, fundo financeiro desfocado, identidade visual verde premium e suporte ao tema.
 
-## 1. Visão Geral
+Esta não é apenas uma tarefa visual. O sistema de autenticação precisa funcionar integralmente no backend Spring Boot Java 21 e no frontend Angular standalone.
 
-Aplicação acadêmica para gerenciamento de corretoras, ações e carteira de investimentos, desenvolvida com:
+## Regra principal
 
-### Backend
-- Java 21
-- Spring Boot
-- Spring Web
-- Spring Data JPA
-- Bean Validation
-- Lombok
-- RestClient ou WebClient
-- Springdoc OpenAPI / Swagger
-- H2
-- PostgreSQL
-- JUnit
-- Mockito
+Antes de implementar, analise completamente o projeto existente:
 
-### Frontend
-- Angular
-- TypeScript
-- HTML
-- SCSS
-- Angular Router
-- Reactive Forms
-- HttpClient
+* estrutura do backend;
+* dependências do `build.gradle`;
+* entidades atuais;
+* controllers/resources;
+* serviços;
+* tratamento de exceções;
+* configuração de CORS;
+* rotas do Angular;
+* interceptors existentes;
+* armazenamento atual;
+* estrutura das carteiras;
+* vínculo entre carteiras, posições, ações, vendas e outras operações.
 
-### Integrações externas
-- BRAPI — ações brasileiras
-- Alpha Vantage — ações americanas
-- Twelve Data — integração alternativa
-- BrasilAPI — consulta de CNPJ
-- ViaCEP — consulta e validação de CEP
-- CVM ou fonte pública equivalente — validação de instituição financeira
+Não remova nem reescreva funcionalidades que já estão funcionando.
 
----
+Não crie uma camada arquitetural chamada `provider`. Preserve o padrão existente com services, adapters, facades, repositories, mappers, DTOs, domains, resources e exceptions.
 
-# 2. Objetivo
+## 1. Funcionalidades obrigatórias
 
-Desenvolver uma aplicação em Spring Boot com frontend Angular para:
+Implementar:
 
-- cadastrar corretoras;
-- validar CNPJ;
-- consultar dados cadastrais externos;
-- validar participação da instituição no mercado financeiro;
-- validar CEP;
-- cadastrar ações brasileiras e americanas;
-- consultar cotações externas;
-- atualizar cotações;
-- manter histórico das cotações consultadas;
-- criar carteiras de investimentos;
-- associar posições financeiras às carteiras;
-- apresentar indicadores em dashboard.
+* cadastro de usuário;
+* login com e-mail e senha;
+* logout;
+* recuperação da sessão após atualizar a página;
+* opção “Manter conectado”;
+* consulta do usuário autenticado;
+* proteção das rotas privadas;
+* proteção dos endpoints do backend;
+* redirecionamento automático para login;
+* redirecionamento após autenticação;
+* senha criptografada;
+* tratamento de token expirado;
+* refresh de autenticação seguro;
+* mensagens de erro amigáveis;
+* botão para mostrar e ocultar senha;
+* loading durante login;
+* prevenção de múltiplos envios;
+* recuperação de senha;
+* tema claro e escuro na tela de autenticação.
 
----
+## 2. Modelo de usuário
 
-# 3. Arquitetura
-
-```text
-Angular
-   ↓
-Resource
-   ↓
-Service
-   ├── Repository → Database
-   │
-   └── Facade
-          ↓
-       Adapter
-          ↓
-       API Externa
-```
-
-## 3.1 Responsabilidades
-
-### Resource
-Responsável pela camada HTTP.
-
-Pode:
-- receber Request DTOs;
-- acionar validações;
-- chamar Services;
-- retornar Response DTOs;
-- definir status HTTP.
-
-Não pode:
-- acessar Repository diretamente;
-- acessar APIs externas;
-- aplicar regras de negócio;
-- realizar cálculos de domínio.
-
-### Service
-Responsável pelas regras de negócio.
-
-Exemplos:
-- normalizar dados;
-- verificar duplicidade;
-- validar regras;
-- coordenar persistência;
-- atualizar cotação;
-- registrar histórico;
-- calcular operações do domínio.
-
-### Facade
-Responsável por orquestrar integrações externas.
-
-Exemplos:
-- escolher Adapter por mercado;
-- selecionar integração adequada;
-- fornecer uma interface simplificada ao Service.
-
-A Facade não deve substituir o Service.
-
-### Adapter
-Responsável pela comunicação direta com APIs externas.
-
-Exemplos:
-- montar URL;
-- enviar parâmetros;
-- autenticar;
-- receber JSON;
-- converter respostas;
-- tratar erros externos;
-- devolver DTO interno.
-
-### Repository
-Responsável pela persistência.
-
-### Mapper
-Responsável exclusivamente pela conversão:
-
-```text
-Domain ↔ DTO
-```
-
-Não deve:
-- chamar Repository;
-- chamar Facade;
-- chamar Adapter;
-- executar regras de negócio.
-
----
-
-# 4. Estrutura de Pacotes
-
-```text
-src/main/java/com/carteirainvestimentos
-│
-├── CarteiraInvestimentosApplication.java
-│
-├── config
-│   ├── CorsConfig.java
-│   ├── OpenApiConfig.java
-│   ├── RestClientConfig.java
-│   └── properties
-│       ├── BrapiProperties.java
-│       ├── AlphaVantageProperties.java
-│       ├── BrasilApiProperties.java
-│       └── ViaCepProperties.java
-│
-├── domains
-│   ├── Acao.java
-│   ├── Corretora.java
-│   ├── Carteira.java
-│   ├── AtivoCarteira.java
-│   └── HistoricoCotacao.java
-│
-├── dtos
-│   ├── acao
-│   ├── corretora
-│   ├── carteira
-│   ├── dashboard
-│   └── external
-│
-├── enums
-│   ├── Mercado.java
-│   ├── Moeda.java
-│   ├── TipoAtivo.java
-│   ├── PeriodoHistorico.java
-│   └── FonteCotacao.java
-│
-├── repositories
-│   ├── AcaoRepository.java
-│   ├── CorretoraRepository.java
-│   ├── CarteiraRepository.java
-│   ├── AtivoCarteiraRepository.java
-│   └── HistoricoCotacaoRepository.java
-│
-├── mappers
-│   ├── AcaoMapper.java
-│   ├── CorretoraMapper.java
-│   ├── CarteiraMapper.java
-│   └── AtivoCarteiraMapper.java
-│
-├── services
-│   ├── AcaoService.java
-│   ├── CorretoraService.java
-│   ├── CarteiraService.java
-│   ├── DashboardService.java
-│   └── HistoricoCotacaoService.java
-│
-├── facades
-│   ├── CotacaoFacade.java
-│   ├── EmpresaFacade.java
-│   ├── EnderecoFacade.java
-│   └── InstituicaoFinanceiraFacade.java
-│
-├── adapters
-│   ├── cotacao
-│   │   ├── CotacaoAdapter.java
-│   │   ├── BrapiAdapter.java
-│   │   ├── AlphaVantageAdapter.java
-│   │   └── TwelveDataAdapter.java
-│   │
-│   ├── empresa
-│   │   ├── EmpresaAdapter.java
-│   │   └── BrasilApiAdapter.java
-│   │
-│   ├── endereco
-│   │   ├── EnderecoAdapter.java
-│   │   └── ViaCepAdapter.java
-│   │
-│   └── instituicao
-│       ├── InstituicaoFinanceiraAdapter.java
-│       └── CvmAdapter.java
-│
-├── resources
-│   ├── AcaoResource.java
-│   ├── CorretoraResource.java
-│   ├── CarteiraResource.java
-│   └── DashboardResource.java
-│
-└── exceptions
-    ├── StandardError.java
-    ├── ValidationError.java
-    ├── ResourceExceptionHandler.java
-    │
-    ├── business
-    │   ├── BusinessException.java
-    │   ├── ObjectNotFoundException.java
-    │   ├── DuplicateResourceException.java
-    │   ├── InvalidTickerException.java
-    │   ├── TickerNotFoundException.java
-    │   ├── InvalidCnpjException.java
-    │   ├── CnpjNotFoundException.java
-    │   ├── InvalidCepException.java
-    │   ├── CepNotFoundException.java
-    │   └── InstitutionNotAuthorizedException.java
-    │
-    └── external
-        ├── ExternalApiException.java
-        ├── ExternalApiUnavailableException.java
-        ├── ExternalApiTimeoutException.java
-        ├── ExternalApiRateLimitException.java
-        └── ExternalApiUnexpectedResponseException.java
-```
-
----
-
-# 5. Domínios
-
-## 5.1 Acao
-
-Representa o ativo financeiro global no sistema.
-
-```text
-Acao
---------------------------------
-id                  Long
-ticker              String
-nomeEmpresa         String
-mercado             Mercado
-moeda               Moeda
-cotacaoAtual        BigDecimal
-dataHoraCotacao     OffsetDateTime
-```
-
-Ação não representa a posição do usuário.
-
----
-
-## 5.2 Corretora
-
-```text
-Corretora
---------------------------------
-id                          Long
-cnpj                        String
-razaoSocial                 String
-nomeFantasia                String
-email                       String
-telefone                    String
-
-cep                         String
-logradouro                  String
-numero                      String
-complemento                 String
-bairro                      String
-cidade                      String
-uf                          String
-
-situacaoCadastral           String
-validadaMercadoFinanceiro   boolean
-dataValidacaoMercado        OffsetDateTime
-fonteValidacaoMercado       String
-dataCadastro                OffsetDateTime
-```
-
----
-
-## 5.3 Carteira
-
-```text
-Carteira
---------------------------------
-id
-nome
-descricao
-dataCriacao
-```
-
----
-
-## 5.4 AtivoCarteira
-
-Representa uma posição patrimonial do usuário.
-
-```text
-AtivoCarteira
---------------------------------
-id
-carteira
-acao
-corretora
-quantidade
-precoMedio
-dataPrimeiraCompra
-```
-
----
-
-## 5.5 HistoricoCotacao
-
-```text
-HistoricoCotacao
---------------------------------
-id
-acao
-valor
-dataHoraCotacao
-dataHoraRegistro
-fonte
-```
-
----
-
-# 6. Enums
-
-## Mercado
+Crie ou adapte uma entidade equivalente a:
 
 ```java
-public enum Mercado {
-    BRASIL,
-    EUA
+Usuario {
+    Long id;
+    String nome;
+    String email;
+    String senha;
+    PerfilUsuario perfil;
+    Boolean ativo;
+    LocalDateTime criadoEm;
+    LocalDateTime atualizadoEm;
 }
 ```
 
-## Moeda
+Utilize enum:
 
 ```java
-public enum Moeda {
-    BRL,
-    USD
+public enum PerfilUsuario {
+    USER,
+    ADMIN
 }
 ```
-
-## FonteCotacao
-
-```java
-public enum FonteCotacao {
-    BRAPI,
-    ALPHA_VANTAGE,
-    TWELVE_DATA
-}
-```
-
----
-
-# 7. Regras de Negócio
-
-## Corretoras
-
-### RN01 — Validação e existência do CNPJ
-Uma corretora somente poderá ser cadastrada quando:
-
-1. o CNPJ for informado;
-2. o CNPJ for normalizado;
-3. possuir 14 dígitos;
-4. passar pela validação dos dígitos verificadores;
-5. existir na API cadastral consultada.
-
-Um CNPJ matematicamente válido, mas não encontrado pela fonte externa, não será suficiente para realizar o cadastro.
-
----
-
-### RN02 — Normalização do CNPJ
-Antes de qualquer validação, consulta ou verificação de duplicidade, o CNPJ deverá ser normalizado, removendo pontos, barras, hífens e espaços.
-
-Exemplo:
-
-```text
-12.345.678/0001-90
-↓
-12345678000190
-```
-
-Ordem obrigatória:
-
-```text
-recebe
-↓
-normaliza
-↓
-valida
-↓
-verifica duplicidade
-↓
-consulta API
-```
-
----
-
-### RN03 — Origem dos dados cadastrais
-Os principais dados cadastrais da corretora deverão ser obtidos da integração externa.
-
-O usuário não poderá substituir livremente dados oficiais retornados pela API.
-
-Dados externos podem incluir:
-- razão social;
-- nome fantasia;
-- situação cadastral;
-- demais dados cadastrais disponíveis.
-
----
-
-### RN04 — Situação cadastral
-Uma empresa encontrada deverá possuir situação cadastral compatível com atividade vigente para prosseguir com a validação como corretora.
-
-Empresas com situação incompatível com atividade operacional não deverão ser cadastradas.
-
----
-
-### RN05 — Validação da instituição financeira
-Depois da validação cadastral, o sistema deverá consultar a CVM ou fonte pública equivalente.
-
-Somente instituições compatíveis/autorizadas segundo o critério adotado pelo projeto poderão ser cadastradas.
-
-Nesta versão:
-
-```text
-instituição não validada
-↓
-cadastro recusado
-```
-
----
-
-### RN06 — Auditoria da validação financeira
-Ao cadastrar uma corretora validada, o sistema deverá registrar:
-
-- status da validação;
-- data/hora da validação;
-- fonte utilizada.
-
----
-
-### RN07 — Validação do CEP
-O CEP deverá ser normalizado e validado por API externa antes do cadastro.
-
-Um CEP com formato válido, mas inexistente na fonte consultada, deverá impedir o cadastro.
-
----
-
-### RN08 — Origem do endereço
-Dados retornados pela API:
-
-- CEP;
-- logradouro;
-- bairro;
-- cidade;
-- UF.
-
-Dados complementares informados pelo usuário:
-
-- número;
-- complemento.
-
-Os dados oficiais retornados pela API não devem ser sobrescritos arbitrariamente.
-
----
-
-### RN09 — Unicidade da corretora
-Não poderá existir mais de uma corretora com o mesmo CNPJ normalizado.
-
-A unicidade deverá ser garantida:
-
-1. pelo Service;
-2. por constraint `UNIQUE` no banco.
-
----
-
-# 8. Regras de Ações e Cotações
-
-### RN10 — Normalização do ticker
-Antes de qualquer validação:
-
-- remover espaços externos;
-- converter para maiúsculas.
-
-Exemplo:
-
-```text
-" petr4 "
-↓
-"PETR4"
-```
-
----
-
-### RN11 — Mercado obrigatório
-Toda ação deverá informar explicitamente seu mercado.
-
-Mercados suportados inicialmente:
-
-```text
-BRASIL
-EUA
-```
-
-O backend não deverá adivinhar silenciosamente o mercado.
-
----
-
-### RN12 — Compatibilidade ticker × mercado
-O ticker só será válido quando existir na integração correspondente ao mercado informado.
-
-```text
-BRASIL → API brasileira
-EUA → API americana
-```
-
----
-
-### RN13 — Existência do ativo
-Uma ação só poderá ser cadastrada quando seu ticker existir na API correspondente.
-
-Não será permitido cadastrar ativos fictícios.
-
----
-
-### RN14 — Seleção da integração de cotação
-Integrações principais:
-
-```text
-BRASIL → BRAPI
-EUA → Alpha Vantage
-```
-
-Twelve Data poderá existir como integração alternativa, sem fallback automático na primeira versão.
-
----
-
-### RN15 — Dados externos do ativo
-Os dados disponíveis retornados pela integração deverão enriquecer o cadastro:
-
-- ticker;
-- nome da empresa;
-- mercado;
-- moeda;
-- cotação;
-- data/hora da cotação.
-
----
-
-### RN16 — Unicidade do ticker
-Não poderá existir mais de uma ação com o mesmo ticker normalizado.
-
-Nesta versão:
-
-```text
-UNIQUE(ticker)
-```
-
-Essa decisão segue a regra original do trabalho.
-
----
-
-### RN17 — Cotação atual
-`cotacaoAtual` representa a última cotação válida conhecida pela aplicação.
-
-Não significa obrigatoriamente cotação em tempo real.
-
-No frontend, preferir:
-
-```text
-Última cotação
-```
-
-ou:
-
-```text
-Cotação mais recente
-```
-
----
-
-### RN18 — Momento da cotação
-Quando a API fornecer o horário da cotação, ele deverá ser preservado.
-
-Não confundir:
-
-```text
-dataHoraCotacao
-```
-
-com:
-
-```text
-dataHoraRegistro
-```
-
----
-
-### RN19 — Atualização da cotação
-Uma ação cadastrada poderá ter sua cotação atualizada.
-
-Fluxo:
-
-1. localizar a ação;
-2. obter o mercado já armazenado;
-3. chamar a integração correta;
-4. validar a resposta;
-5. registrar histórico;
-6. atualizar `cotacaoAtual`;
-7. atualizar `dataHoraCotacao`.
-
----
-
-### RN20 — Atomicidade da atualização
-Atualização da ação e gravação do histórico deverão ocorrer na mesma transação.
-
-Ou tudo é salvo ou nada é salvo.
-
----
-
-### RN21 — Significado do histórico
-O histórico local representa as cotações efetivamente consultadas e persistidas pela aplicação.
-
-Ele não representa necessariamente todo o histórico de negociação da bolsa.
-
----
-
-### RN22 — Unicidade do ponto histórico
-Uma observação histórica será identificada por:
-
-```text
-acao + dataHoraCotacao
-```
-
-O mesmo ponto temporal não deverá ser persistido duas vezes.
-
-Constraint sugerida:
-
-```text
-UNIQUE(acao_id, data_hora_cotacao)
-```
-
----
-
-### RN23 — Fonte da cotação
-Cada histórico deverá registrar a fonte utilizada:
-
-```text
-BRAPI
-ALPHA_VANTAGE
-TWELVE_DATA
-```
-
----
-
-# 9. Regras da Carteira
-
-### RN24 — Conceito de carteira
-Uma carteira representa um agrupamento de posições financeiras.
-
-Pode possuir nenhuma ou várias posições.
-
----
-
-### RN25 — Ação ≠ posição
-`Acao` representa o ativo financeiro.
-
-`AtivoCarteira` representa a posição do usuário.
-
-Pertencem ao `AtivoCarteira`:
-
-- quantidade;
-- preço médio;
-- corretora.
-
----
-
-### RN26 — Inclusão de posição
-Somente uma ação previamente cadastrada e validada poderá ser adicionada à carteira.
-
----
-
-### RN27 — Quantidade
-A quantidade deverá ser maior que zero.
-
-Tipo:
-
-```java
-BigDecimal
-```
-
----
-
-### RN28 — Preço médio
-Na primeira versão, o preço médio será informado pelo usuário.
 
 Regras:
 
-```text
-precoMedio > 0
+* e-mail obrigatório;
+* normalizar e-mail com `trim().toLowerCase()`;
+* e-mail único;
+* nome obrigatório;
+* senha nunca deve ser devolvida por endpoints;
+* senha armazenada somente com BCrypt;
+* usuário novo recebe `USER`;
+* usuário inativo não pode entrar;
+* perfil não pode ser escolhido livremente no cadastro público.
+
+Não exponha a entidade diretamente. Utilize DTOs.
+
+## 3. DTOs
+
+Crie DTOs equivalentes a:
+
+```java
+CadastroUsuarioRequest
+LoginRequest
+LoginResponse
+UsuarioLogadoResponse
+RefreshTokenResponse
+SolicitarRecuperacaoSenhaRequest
+RedefinirSenhaRequest
 ```
 
-A cotação atual nunca deverá ser usada automaticamente como preço médio.
+Sugestão:
 
----
-
-### RN29 — Data da primeira compra
-A data da primeira compra não poderá ser futura.
-
-```text
-dataPrimeiraCompra <= data atual
+```java
+public record LoginRequest(
+    @NotBlank @Email String email,
+    @NotBlank String senha,
+    boolean manterConectado
+) {}
 ```
 
----
+A resposta não pode conter senha, hash, refresh token ou informações internas.
 
-### RN30 — Unicidade da posição
-Uma posição consolidada será única pela combinação:
+## 4. Endpoints
 
-```text
-carteira + ação + corretora
-```
-
-Permitido:
+Implemente ou adapte:
 
 ```text
-Carteira Principal
-├── PETR4 — XP
-└── PETR4 — Rico
+POST /api/v1/auth/cadastro
+POST /api/v1/auth/login
+POST /api/v1/auth/refresh
+POST /api/v1/auth/logout
+GET  /api/v1/auth/me
+POST /api/v1/auth/esqueci-minha-senha
+POST /api/v1/auth/redefinir-senha
 ```
 
-Não permitido:
+Contratos esperados:
 
-```text
-Carteira Principal
-├── PETR4 — XP
-└── PETR4 — XP
-```
-
----
-
-### RN31 — Relação com corretora
-A corretora pertence à posição patrimonial, não à ação global.
-
----
-
-### RN32 — Exclusão da carteira
-Uma carteira com posições não poderá ser excluída diretamente.
-
-As posições deverão ser removidas primeiro.
-
-Resposta sugerida:
-
-```text
-409 Conflict
-```
-
----
-
-### RN33 — Exclusão da posição
-Excluir um `AtivoCarteira` não poderá excluir:
-
-- Acao;
-- Corretora;
-- Carteira;
-- HistoricoCotacao.
-
-Evitar `CascadeType.ALL` indiscriminadamente.
-
----
-
-# 10. Dashboard
-
-### RN34 — Indicadores calculados
-O Dashboard não será uma entidade persistida.
-
-Os valores serão calculados com base nos dados existentes.
-
-#### Valor investido
-
-```text
-quantidade × precoMedio
-```
-
-#### Valor atual
-
-```text
-quantidade × cotacaoAtual
-```
-
-#### Resultado
-
-```text
-valorAtual - valorInvestido
-```
-
-#### Rentabilidade
-
-```text
-(resultado / valorInvestido) × 100
-```
-
----
-
-### RN35 — Cálculo seguro
-Quando `valorInvestido` for zero, o sistema não poderá realizar divisão por zero.
-
-A rentabilidade deverá ser zero ou não calculada.
-
----
-
-### RN36 — Atualidade dos indicadores
-O Dashboard deverá usar a última cotação válida armazenada.
-
-O frontend deverá poder exibir:
-
-```text
-Última atualização:
-25/08/2026 17:05
-```
-
----
-
-# 11. Regras de Integrações e Falhas
-
-### RN37 — Falha externa ≠ dado inexistente
-Falha na API externa não significa que o dado consultado não existe.
-
-Exemplos:
-
-```text
-BRAPI offline ≠ ticker inexistente
-BrasilAPI offline ≠ CNPJ inexistente
-ViaCEP offline ≠ CEP inexistente
-```
-
----
-
-### RN38 — Cadastro depende da validação
-Quando uma integração obrigatória estiver indisponível, o cadastro não deverá ser concluído com dados fictícios ou não confirmados.
-
----
-
-### RN39 — Rate limit externo
-Quando uma API externa atingir seu limite de requisições, o sistema deverá tratar a situação como indisponibilidade temporária.
-
-Não deve invalidar o recurso consultado.
-
----
-
-### RN40 — Resposta externa inconsistente
-Uma resposta HTTP bem-sucedida, mas sem dados mínimos obrigatórios, deverá ser considerada inválida.
-
-A aplicação não deverá persistir dados parciais.
-
----
-
-### RN41 — Preservação da última cotação
-Se uma atualização externa falhar, a última cotação válida existente deverá ser preservada.
-
-Nunca:
-
-```text
-falha externa
-↓
-cotacaoAtual = null
-```
-
----
-
-# 12. Exceções
-
-## Regras internas
-
-```text
-INVALID_CNPJ
-CNPJ_NOT_FOUND
-INSTITUTION_NOT_AUTHORIZED
-
-INVALID_CEP
-CEP_NOT_FOUND
-
-INVALID_TICKER
-TICKER_NOT_FOUND
-
-DUPLICATE_RESOURCE
-OBJECT_NOT_FOUND
-```
-
-## Integrações externas
-
-```text
-EXTERNAL_API_UNAVAILABLE
-EXTERNAL_API_TIMEOUT
-EXTERNAL_API_RATE_LIMIT
-EXTERNAL_API_UNEXPECTED_RESPONSE
-```
-
----
-
-# 13. StandardError
-
-Formato sugerido:
+### Cadastro
 
 ```json
 {
-  "timestamp": "2026-08-25T20:00:00-03:00",
-  "status": 404,
-  "error": "Recurso não encontrado",
-  "code": "TICKER_NOT_FOUND",
-  "message": "Ticker PETR99 não encontrado.",
-  "path": "/api/v1/acoes"
+  "nome": "Jhonatan Zago",
+  "email": "jhonatan@email.com",
+  "senha": "SenhaForte@123",
+  "confirmacaoSenha": "SenhaForte@123"
 }
 ```
 
-O frontend deverá usar `code` para interpretar erros, não comparar mensagens.
+### Login
 
----
-
-# 14. Regras dos Adapters
-
-Nenhum modelo específico de API externa deverá escapar do Adapter.
-
-Errado:
-
-```text
-BrapiResponse
-↓
-AcaoService
-```
-
-Correto:
-
-```text
-BRAPI JSON
-↓
-BrapiResponse interno
-↓
-BrapiAdapter
-↓
-CotacaoExternaDTO
-↓
-Facade
-↓
-Service
-```
-
-O Adapter também deverá converter erros técnicos para exceções da aplicação.
-
----
-
-# 15. Contrato de Cotação
-
-```java
-public interface CotacaoAdapter {
-
-    boolean suporta(Mercado mercado);
-
-    CotacaoExternaDTO buscarCotacao(String ticker);
+```json
+{
+  "email": "jhonatan@email.com",
+  "senha": "SenhaForte@123",
+  "manterConectado": true
 }
 ```
 
-A Facade poderá receber:
+### Usuário autenticado
 
-```java
-List<CotacaoAdapter>
+```json
+{
+  "id": 1,
+  "nome": "Jhonatan Zago",
+  "email": "jhonatan@email.com",
+  "perfil": "USER"
+}
 ```
 
-e selecionar o Adapter utilizando:
+Use os status HTTP corretamente:
 
-```java
-adapter.suporta(mercado)
-```
+* `200`: login realizado;
+* `201`: cadastro realizado;
+* `204`: logout;
+* `400`: dados inválidos;
+* `401`: credenciais inválidas ou sessão expirada;
+* `403`: usuário sem autorização;
+* `409`: e-mail já cadastrado.
 
----
+## 5. Segurança
 
-# 16. Fluxo de Cadastro da Corretora
+Utilize Spring Security compatível com a versão atual do Spring Boot.
+
+Não utilize configurações obsoletas como `WebSecurityConfigurerAdapter`.
+
+Utilize:
+
+* `SecurityFilterChain`;
+* `PasswordEncoder`;
+* BCrypt;
+* autenticação stateless;
+* access token de curta duração;
+* refresh token com expiração;
+* assinatura JWT forte;
+* segredo configurado por variável de ambiente;
+* validação de expiração e assinatura;
+* logout com invalidação do refresh token;
+* respostas JSON para `401` e `403`.
+
+Nunca:
+
+* salvar senha em texto puro;
+* colocar segredo JWT diretamente no código;
+* registrar senha ou token em logs;
+* devolver refresh token no JSON;
+* aceitar algoritmo JWT vindo do cliente;
+* colocar token em parâmetros da URL;
+* expor detalhes que permitam descobrir se um e-mail existe.
+
+O refresh token deve ser armazenado em cookie:
+
+* `HttpOnly`;
+* `SameSite=Lax` ou configuração segura equivalente;
+* `Path=/api/v1/auth`;
+* `Secure=true` em produção;
+* tempo diferente conforme “Manter conectado”.
+
+No ambiente local HTTP, utilize configuração específica de desenvolvimento para permitir o cookie sem enfraquecer produção.
+
+O access token pode ser mantido pelo Angular em memória e renovado pelo refresh token. Se a arquitetura existente exigir armazenamento no navegador, documente o risco e evite `localStorage` como primeira escolha.
+
+A opção “Manter conectado” deve controlar a duração do refresh token:
+
+* desmarcada: sessão curta;
+* marcada: sessão persistente por período configurável.
+
+## 6. Autorização dos endpoints
+
+Deixe públicos somente:
 
 ```text
-POST /corretoras
-       ↓
-normaliza CNPJ
-       ↓
-valida dígitos
-       ↓
-verifica duplicidade
-       ↓
-EmpresaFacade
-       ↓
-BrasilApiAdapter
-       ↓
-empresa existe?
-       ↓
-situação válida?
-       ↓
-InstituicaoFinanceiraFacade
-       ↓
-CvmAdapter
-       ↓
-instituição autorizada?
-       ↓
-normaliza CEP
-       ↓
-EnderecoFacade
-       ↓
-ViaCepAdapter
-       ↓
-CEP existe?
-       ↓
-monta Corretora
-       ↓
-Repository
-       ↓
-Database
+/api/v1/auth/login
+/api/v1/auth/cadastro
+/api/v1/auth/refresh
+/api/v1/auth/esqueci-minha-senha
+/api/v1/auth/redefinir-senha
 ```
 
-Qualquer falha de validação obrigatória impede o salvamento.
+Também preserve somente os endpoints públicos realmente necessários, como:
 
----
+* documentação da API, se habilitada;
+* console H2 apenas no perfil de desenvolvimento;
+* recursos públicos;
+* tratamento de preflight `OPTIONS`.
 
-# 17. Fluxo de Cadastro da Ação
+Todos os endpoints de carteiras, ações, corretoras, posições, vendas, histórico, proventos e dashboard devem exigir autenticação.
+
+## 7. Isolamento dos dados por usuário
+
+Isto é obrigatório.
+
+Não basta esconder as telas. Um usuário não pode acessar dados de outro alterando o ID na URL.
+
+Analise os relacionamentos atuais e associe os dados ao proprietário autenticado.
+
+No mínimo:
+
+* cada carteira deve pertencer a um usuário;
+* consultas devem filtrar pelo usuário autenticado;
+* criação deve associar automaticamente o usuário autenticado;
+* atualização e exclusão devem validar propriedade;
+* posições e operações devem ser acessíveis por meio de carteiras pertencentes ao usuário;
+* IDs de outro usuário devem retornar `404` ou `403`, conforme padrão adotado;
+* nenhuma listagem pode retornar dados globais de todos os usuários.
+
+Não aceite `usuarioId` enviado pelo frontend para definir o proprietário. Obtenha o usuário pelo contexto de autenticação.
+
+Preserve IDs, posições e relacionamentos existentes. Crie uma migração ou estratégia segura para os registros legados, sem apagar dados.
+
+## 8. CORS
+
+O Angular utiliza `http://localhost:4200` e o backend `http://localhost:8081`.
+
+Configure CORS especificamente para a origem do frontend e permita credenciais quando necessário.
+
+Não utilize simultaneamente:
 
 ```text
-POST /acoes
-       ↓
-normaliza ticker
-       ↓
-valida entrada
-       ↓
-verifica duplicidade
-       ↓
-valida mercado
-       ↓
-CotacaoFacade
-       ↓
-seleciona CotacaoAdapter
-       ↓
-BRASIL → BRAPI
-EUA → Alpha Vantage
-       ↓
-ticker existe?
-       ↓
-obtém dados externos
-       ↓
-cria Acao
-       ↓
-cria HistoricoCotacao
-       ↓
-Repository
-       ↓
-Database
+allowCredentials(true)
+allowedOrigins("*")
 ```
 
-Cadastro de ação e histórico inicial deverão ocorrer de forma transacional.
+Permitir:
 
----
+* métodos utilizados pela aplicação;
+* cabeçalhos necessários;
+* cookie de refresh;
+* header `Authorization`.
 
-# 18. Endpoints
+Não desabilite toda a segurança para resolver CORS.
 
-## Ações
+## 9. Frontend Angular
 
-```http
-POST /api/v1/acoes
-GET /api/v1/acoes
-GET /api/v1/acoes/{id}
-GET /api/v1/acoes/ticker/{ticker}
-PUT /api/v1/acoes/{id}/atualizar-cotacao
-GET /api/v1/acoes/{id}/historico
-```
-
----
-
-## Corretoras
-
-```http
-POST /api/v1/corretoras
-GET /api/v1/corretoras
-GET /api/v1/corretoras/{id}
-GET /api/v1/corretoras/cnpj/{cnpj}
-```
-
----
-
-## Carteiras
-
-```http
-POST /api/v1/carteiras
-GET /api/v1/carteiras
-GET /api/v1/carteiras/{id}
-PUT /api/v1/carteiras/{id}
-DELETE /api/v1/carteiras/{id}
-```
-
----
-
-## Ativos da Carteira
-
-```http
-POST /api/v1/carteiras/{carteiraId}/ativos
-GET /api/v1/carteiras/{carteiraId}/ativos
-PUT /api/v1/carteiras/{carteiraId}/ativos/{ativoId}
-DELETE /api/v1/carteiras/{carteiraId}/ativos/{ativoId}
-```
-
----
-
-## Dashboard
-
-```http
-GET /api/v1/dashboard/carteiras/{carteiraId}
-```
-
----
-
-# 19. Paginação
-
-Aplicar desde o início em listagens.
-
-Exemplos:
-
-```http
-GET /api/v1/acoes?page=0&size=20
-GET /api/v1/corretoras?page=0&size=20
-GET /api/v1/carteiras?page=0&size=20
-```
-
-Ordenação padrão:
+Crie uma feature de autenticação organizada, seguindo o padrão standalone do projeto:
 
 ```text
-Ações → ticker ASC
-Corretoras → razaoSocial ASC
-Histórico → dataHoraCotacao DESC
+core/auth/
+features/auth/login/
+features/auth/register/
+features/auth/forgot-password/
+features/auth/reset-password/
 ```
 
----
+Adapte os nomes à estrutura real.
 
-# 20. Persistência
+Criar:
 
-Garantias mínimas no banco:
+* `AuthService`;
+* modelos de autenticação;
+* interceptor funcional;
+* guard para rotas privadas;
+* guard para impedir usuário autenticado de voltar ao login;
+* gerenciamento do estado autenticado;
+* carregamento inicial da sessão;
+* logout no menu;
+* tratamento central de `401`.
+
+Não espalhe regras de autenticação por vários componentes.
+
+## 10. Tela de login escolhida
+
+Reproduza fielmente a segunda imagem:
+
+* fundo ocupando toda a tela;
+* fundo financeiro escuro e desfocado;
+* gráfico e elementos de investimento discretos;
+* card centralizado;
+* card com transparência controlada;
+* borda verde/cinza discreta;
+* título `CARTEIRA`;
+* subtítulo `Controle seus investimentos`;
+* texto `Entre para acompanhar sua evolução`;
+* inputs de e-mail e senha;
+* ícones nos inputs;
+* botão para mostrar ou ocultar senha;
+* checkbox `Manter conectado`;
+* link `Esqueci minha senha`;
+* botão principal verde `Entrar`;
+* divisor com `ou`;
+* botão secundário `Criar nova conta`;
+* alternador de tema no canto superior direito.
+
+O fundo deve ser criado com HTML/CSS e elementos visuais leves já disponíveis no projeto. Não utilize uma captura estática do dashboard com dados pessoais.
+
+Pode utilizar gradientes, gráficos abstratos e elementos decorativos, mas eles devem ter:
+
+```css
+pointer-events: none;
+```
+
+O card deve continuar legível e com contraste adequado.
+
+## 11. Formulário de login
+
+Use Reactive Forms.
+
+Validações:
+
+* e-mail obrigatório;
+* formato de e-mail válido;
+* senha obrigatória;
+* mensagens abaixo dos campos;
+* campos marcados após interação ou envio;
+* tecla Enter envia o formulário;
+* botão fica desabilitado quando inválido ou carregando;
+* spinner durante requisição;
+* impedir clique duplicado;
+* preservar o e-mail após erro;
+* nunca limpar a senha antes de apresentar o resultado;
+* erro genérico para credenciais inválidas.
+
+Mensagens:
 
 ```text
-acao.ticker UNIQUE
-corretora.cnpj UNIQUE
-historico (acao_id, data_hora_cotacao) UNIQUE
-ativo_carteira (carteira_id, acao_id, corretora_id) UNIQUE
+Informe seu e-mail.
+Digite um e-mail válido.
+Informe sua senha.
+E-mail ou senha inválidos.
+Sua sessão expirou. Entre novamente.
+Não foi possível conectar ao servidor.
 ```
 
-Valores financeiros devem usar:
+Não mostrar stack trace ou resposta bruta do backend.
 
-```java
-BigDecimal
-```
+## 12. Cadastro
 
-Nunca usar `double`.
-
----
-
-# 21. Transações
-
-Operações de escrita:
-
-```java
-@Transactional
-```
-
-Consultas, quando apropriado:
-
-```java
-@Transactional(readOnly = true)
-```
-
-Operações críticas:
-
-- cadastro da ação + histórico inicial;
-- atualização da ação + histórico;
-- criação de posição;
-- alterações dependentes de múltiplas persistências.
-
----
-
-# 22. Configuração das APIs
-
-URLs e tokens nunca devem ficar hardcoded.
-
-Exemplo:
-
-```yaml
-integrations:
-  brapi:
-    base-url: ${BRAPI_URL}
-    token: ${BRAPI_TOKEN}
-
-  alpha-vantage:
-    base-url: ${ALPHA_VANTAGE_URL}
-    api-key: ${ALPHA_VANTAGE_API_KEY}
-
-  brasil-api:
-    base-url: ${BRASIL_API_URL}
-
-  viacep:
-    base-url: ${VIACEP_URL}
-```
-
----
-
-# 23. Timeout
-
-Toda integração deverá possuir:
+O botão “Criar nova conta” deve abrir uma rota real, por exemplo:
 
 ```text
-connection timeout
-read timeout
+/cadastro
 ```
 
-Nenhuma requisição externa poderá aguardar indefinidamente.
+Campos:
 
----
+* nome;
+* e-mail;
+* senha;
+* confirmação de senha;
+* aceite dos termos, caso existam termos reais.
 
-# 24. Cache
+Validações:
 
-Na primeira versão:
+* nome obrigatório;
+* e-mail válido;
+* senhas iguais;
+* requisitos de senha exibidos ao usuário;
+* indicador simples de segurança da senha;
+* mensagens do backend tratadas;
+* após sucesso, autenticar ou direcionar para login com mensagem de confirmação.
+
+Não adicionar checkbox de termos se não existir uma página ou conteúdo correspondente.
+
+## 13. Recuperação de senha
+
+O link “Esqueci minha senha” deve funcionar.
+
+Fluxo:
+
+1. usuário informa o e-mail;
+2. backend sempre retorna mensagem genérica;
+3. gerar token aleatório de uso único;
+4. armazenar somente hash do token;
+5. definir expiração;
+6. invalidar após uso;
+7. permitir cadastrar nova senha;
+8. invalidar sessões antigas após alteração.
+
+Mensagem:
 
 ```text
-CEP → permitido
-CNPJ → permitido
-cotação → sem cache inicialmente
+Se o e-mail estiver cadastrado, você receberá as instruções para redefinir sua senha.
 ```
 
-Validação financeira poderá receber cache futuramente com TTL definido.
+Crie uma interface de adapter para envio de e-mail, seguindo a arquitetura do projeto.
 
----
+Se ainda não existir serviço de e-mail:
 
-# 25. Swagger
+* implemente a estrutura sem inventar envio em produção;
+* no perfil de desenvolvimento, permita testar o fluxo com segurança;
+* documente como configurar o adapter real;
+* não exponha token em resposta de produção;
+* não deixe botão sem ação.
 
-Documentar desde o início:
+## 14. Rotas
 
-- endpoints;
-- Request DTOs;
-- Response DTOs;
-- status HTTP;
-- códigos de erro;
-- exemplos de requisição;
-- exemplos de resposta.
-
----
-
-# 26. CORS
-
-Configuração centralizada.
-
-Ambiente de desenvolvimento:
+Estrutura esperada:
 
 ```text
-http://localhost:4200
+/login
+/cadastro
+/esqueci-minha-senha
+/redefinir-senha
 ```
 
-Evitar `@CrossOrigin` espalhado pelos Resources.
+As rotas internas atuais devem usar o guard.
 
----
+Comportamento:
 
-# 27. Testes
+* usuário não autenticado acessando rota privada → `/login`;
+* preservar a URL original;
+* após login → voltar à URL original;
+* sem URL anterior → dashboard;
+* usuário autenticado acessando `/login` → dashboard;
+* logout → `/login`;
+* refresh inválido → limpar sessão e ir para `/login`.
 
-## Services
+Evite loop infinito entre interceptor, refresh e guard.
+
+O interceptor não deve tentar atualizar token quando a própria requisição de refresh falhar.
+
+## 15. Usuário no menu
+
+Após o login, exiba no menu ou cabeçalho:
+
+* nome do usuário;
+* e-mail ou avatar com iniciais;
+* opção de sair.
+
+O logout deve:
+
+* chamar o backend;
+* invalidar refresh token;
+* limpar estado do frontend;
+* redirecionar para login;
+* impedir retorno às páginas privadas pelo histórico do navegador.
+
+## 16. Tema e responsividade
+
+A tela deve funcionar no tema escuro e claro.
+
+No celular:
+
+* ocultar ou simplificar os elementos financeiros do fundo;
+* card ocupar quase toda a largura;
+* manter margens de 16px;
+* evitar rolagem horizontal;
+* manter botão e campos acessíveis;
+* permitir abertura correta do teclado;
+* conteúdo não pode ser cortado em telas baixas.
+
+Testar pelo menos:
+
+* 1920×1080;
+* 1366×768;
+* 768×1024;
+* 390×844.
+
+## 17. Migração e dados de desenvolvimento
+
+Não apague o banco ou os dados existentes.
+
+Se estiver usando H2 com `create-drop`, avalie e ajuste sem causar perda acidental.
+
+Use migration se o projeto já tiver Flyway ou Liquibase. Não adicione ambos.
+
+Crie usuário de desenvolvimento somente no perfil `dev`, caso seja necessário para testes.
+
+Credenciais de desenvolvimento devem ser documentadas e nunca ativadas em produção.
+
+Não deixe senha padrão dentro do código principal.
+
+## 18. Testes obrigatórios do backend
+
+Criar testes para:
+
+* cadastro válido;
+* e-mail duplicado;
+* senha criptografada;
+* login válido;
+* senha incorreta;
+* usuário inexistente;
+* usuário inativo;
+* acesso sem token;
+* acesso com token inválido;
+* token expirado;
+* refresh válido;
+* refresh expirado;
+* logout;
+* endpoint `/me`;
+* usuário tentando acessar carteira de outro usuário;
+* recuperação de senha;
+* token de recuperação expirado;
+* token de recuperação usado duas vezes.
+
+## 19. Testes obrigatórios do frontend
+
 Testar:
 
-- normalização;
-- duplicidade;
-- validações;
-- persistência;
-- regras da carteira;
-- atualização da cotação;
-- histórico.
+* validação dos formulários;
+* botão mostrar senha;
+* loading;
+* resposta `401`;
+* indisponibilidade do backend;
+* guard;
+* interceptor;
+* restauração da sessão;
+* logout;
+* “Manter conectado”;
+* redirecionamento após login;
+* prevenção de loop de refresh;
+* responsividade básica.
 
-## Facades
-Testar:
+## 20. Verificação final
 
-```text
-BRASIL → BrapiAdapter
-EUA → AlphaVantageAdapter
-mercado sem Adapter → erro
-```
-
-## Adapters
-Testar:
-
-- resposta correta;
-- JSON inválido;
-- 404;
-- 429;
-- 500;
-- timeout;
-- resposta incompleta.
-
-## Integração
-Utilizar:
+Execute:
 
 ```text
-@SpringBootTest
-MockMvc
-H2
+./gradlew test
+./gradlew build
 ```
 
-As APIs externas deverão ser mockadas na maioria dos testes.
-
----
-
-# 28. Casos de Teste Obrigatórios
+No frontend:
 
 ```text
-CNPJ inválido
-CNPJ inexistente
-CNPJ duplicado
-empresa inativa
-instituição não autorizada
-
-CEP inválido
-CEP inexistente
-
-ticker inválido
-ticker inexistente
-ticker duplicado
-ticker incompatível com mercado
-
-ação brasileira
-ação americana
-
-API indisponível
-timeout
-rate limit
-resposta externa inválida
-
-atualização de cotação
-preservação da cotação anterior em caso de falha
-histórico duplicado
-
-posição duplicada
-quantidade inválida
-preço médio inválido
-data futura
-
-exclusão de carteira com posições
+npm test
+npm run build
 ```
 
----
+Depois execute backend e frontend juntos e teste manualmente:
 
-# 29. Angular
+1. criar conta;
+2. realizar login;
+3. atualizar a página;
+4. abrir rota privada diretamente;
+5. sair;
+6. tentar voltar pelo navegador;
+7. usar senha incorreta;
+8. simular token expirado;
+9. entrar com “Manter conectado”;
+10. testar recuperação de senha;
+11. confirmar isolamento entre dois usuários;
+12. testar temas;
+13. testar desktop e celular.
 
-Estrutura sugerida:
+Não considere concluído apenas porque compilou.
 
-```text
-src/app
-│
-├── core
-│   ├── services
-│   ├── interceptors
-│   └── guards
-│
-├── shared
-│   ├── components
-│   ├── models
-│   └── utils
-│
-├── features
-│   ├── dashboard
-│   ├── acoes
-│   ├── corretoras
-│   ├── carteiras
-│   └── historico
-│
-├── app.routes.ts
-├── app.config.ts
-└── app.component.ts
-```
+## 21. Restrições finais
 
-O Angular nunca deverá consumir APIs externas diretamente.
+* Não alterar o visual já aprovado das páginas internas.
+* Não quebrar os endpoints existentes.
+* Não desativar segurança globalmente.
+* Não utilizar autenticação simulada.
+* Não utilizar apenas dados no `localStorage`.
+* Não aceitar qualquer senha.
+* Não deixar rotas privadas acessíveis diretamente.
+* Não retornar senha ou refresh token.
+* Não inventar integração de e-mail em produção.
+* Não apagar dados existentes.
+* Não gerar uma nova aplicação separada.
+* Não implementar uma camada genérica chamada `provider`.
+* Não encerrar outras aplicações ou portas sem necessidade.
 
-Correto:
+Ao finalizar, informe:
 
-```text
-Angular
-↓
-Spring Boot
-↓
-Facade
-↓
-Adapter
-↓
-API externa
-```
-
----
-
-# 30. Ordem Recomendada de Desenvolvimento
-
-```text
-ETAPA 01 — Criação do projeto Spring Boot / Java 21
-ETAPA 02 — Estrutura de packages
-ETAPA 03 — Enums
-ETAPA 04 — Domains
-ETAPA 05 — Repositories
-ETAPA 06 — DTOs
-ETAPA 07 — Mappers
-ETAPA 08 — Exceptions
-ETAPA 09 — Services
-ETAPA 10 — Facades
-ETAPA 11 — BRAPI Adapter
-ETAPA 12 — BrasilAPI Adapter
-ETAPA 13 — ViaCEP Adapter
-ETAPA 14 — CVM Adapter
-ETAPA 15 — Alpha Vantage Adapter
-ETAPA 16 — Ações
-ETAPA 17 — Corretoras
-ETAPA 18 — Carteira
-ETAPA 19 — Histórico
-ETAPA 20 — Dashboard
-ETAPA 21 — Swagger
-ETAPA 22 — Testes
-ETAPA 23 — Angular
-ETAPA 24 — Integração Angular ↔ Spring
-```
-
----
-
-# 31. Prioridade de Escopo
-
-## Fase 1 — Núcleo obrigatório
-
-```text
-Corretora
-Ação
-CNPJ
-CEP
-Validação financeira
-Cotações
-Persistência
-Tratamento de erros
-Integrações externas
-Swagger
-Testes
-```
-
-## Fase 2 — Diferenciais
-
-```text
-Carteira
-Histórico
-Dashboard
-Paginação
-Cache
-Frontend Angular
-```
-
-## Fase 3 — Evoluções futuras
-
-```text
-Movimentações de compra e venda
-Cálculo automático de preço médio
-Dividendos
-FIIs
-ETFs
-Autenticação
-Spring Security
-JWT
-Usuários
-Comparação com índices
-Mais mercados
-Atualização automática de cotações
-```
-
----
-
-# 32. Observações Finais
-
-A arquitetura principal adotada será:
-
-```text
-Resource
-↓
-Service
-↓
-Facade
-↓
-Adapter
-↓
-API externa
-```
-
-e:
-
-```text
-Service
-↓
-Repository
-↓
-Database
-```
-
-As regras de negócio devem permanecer concentradas nos Services.
-
-As APIs externas deverão permanecer isoladas pelos Adapters.
-
-As Facades deverão apenas orquestrar integrações.
-
-Os DTOs externos não poderão vazar para o domínio.
-
-O sistema deverá preservar dados válidos existentes quando uma integração externa falhar.
-
-A primeira versão deverá priorizar os requisitos obrigatórios do projeto antes dos diferenciais.
+1. arquitetura adotada;
+2. arquivos criados e alterados;
+3. endpoints;
+4. estratégia de access e refresh token;
+5. como os dados foram vinculados ao usuário;
+6. configuração necessária no `.env`;
+7. usuário de desenvolvimento, se criado;
+8. testes executados;
+9. resultado dos builds;
+10. limitações restantes;
+11. instruções exatas para executar e testar o login;
+12. captura da tela final comparada à referência.

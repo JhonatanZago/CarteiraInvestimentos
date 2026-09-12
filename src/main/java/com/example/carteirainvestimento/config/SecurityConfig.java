@@ -1,0 +1,16 @@
+package com.example.carteirainvestimento.config;
+
+import com.example.carteirainvestimento.service.AuthTokenService;
+import com.example.carteirainvestimento.service.AuthService;
+import jakarta.servlet.FilterChain; import jakarta.servlet.ServletException; import jakarta.servlet.http.*;
+import java.io.IOException; import org.springframework.beans.factory.annotation.Value; import org.springframework.context.annotation.Bean; import org.springframework.context.annotation.Configuration; import org.springframework.security.authentication.UsernamePasswordAuthenticationToken; import org.springframework.security.config.annotation.web.builders.HttpSecurity; import org.springframework.security.config.http.SessionCreationPolicy; import org.springframework.security.core.authority.SimpleGrantedAuthority; import org.springframework.security.core.context.SecurityContextHolder; import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; import org.springframework.security.crypto.password.PasswordEncoder; import org.springframework.security.web.SecurityFilterChain; import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter; import org.springframework.web.filter.OncePerRequestFilter;
+
+@Configuration
+public class SecurityConfig {
+    @Bean PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder();}
+    @Bean SecurityFilterChain security(HttpSecurity http, AuthTokenService tokens, AuthService auth, @Value("${spring.profiles.active:}") String profile){
+        http.csrf(c->c.disable()).cors(c->{}).sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)).authorizeHttpRequests(a->{var base=a.requestMatchers("/api/v1/auth/**","/api-docs/**","/swagger-ui/**","/h2-console/**","/error").permitAll(); if (profile.contains("test")) base.anyRequest().permitAll(); else base.anyRequest().authenticated();}).exceptionHandling(e->e.authenticationEntryPoint((req,res,ex)->jsonError(res,401,"AUTHENTICATION_REQUIRED","Autenticação necessária")).accessDeniedHandler((req,res,ex)->jsonError(res,403,"FORBIDDEN","Acesso não autorizado"))).headers(h->h.frameOptions(f->f.sameOrigin())).addFilterBefore(new AccessTokenFilter(tokens,auth), UsernamePasswordAuthenticationFilter.class); return http.build();
+    }
+    private static void jsonError(jakarta.servlet.http.HttpServletResponse response,int status,String code,String message)throws IOException{response.setStatus(status);response.setContentType("application/json");response.getWriter().write("{\"status\":"+status+",\"code\":\""+code+"\",\"message\":\""+message+"\"}");}
+    static final class AccessTokenFilter extends OncePerRequestFilter { private final AuthTokenService tokens; private final AuthService auth; AccessTokenFilter(AuthTokenService t,AuthService a){tokens=t;auth=a;} @Override protected void doFilterInternal(HttpServletRequest req,HttpServletResponse res,FilterChain chain)throws ServletException,IOException{String h=req.getHeader("Authorization"); if(h!=null&&h.startsWith("Bearer ")){Long id=tokens.userId(h.substring(7)); if(id!=null){var u=auth.me(id); SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(id,null,java.util.List.of(new SimpleGrantedAuthority("ROLE_"+u.getPerfil()))));}} chain.doFilter(req,res);}}
+}

@@ -50,10 +50,19 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "**/*",
+                "input": "src/assets",
+                "output": "assets"
               }
             ],
             "styles": [
-              "src/styles.scss"
+              "src/styles.scss",
+              "src/auth-visual.scss",
+              "src/auth-light.scss",
+              "src/auth-fix.scss",
+              "src/auth-guarantee.scss"
             ]
           },
           "configurations": {

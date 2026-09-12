@@ -30,8 +30,9 @@ public class TwelveDataCotacaoAdapter implements CotacaoAdapter {
     private final RestClient client;
     private final String apiKey;
     public TwelveDataCotacaoAdapter(IntegrationProperties properties, RestClient.Builder builder) {
-        client = builder.clone().baseUrl(properties.twelveData().baseUrl()).build();
-        apiKey = properties.twelveData().apiKey();
+        var configured = properties.twelveData();
+        client = builder.clone().baseUrl(configured == null ? "https://api.twelvedata.com" : configured.baseUrl()).build();
+        apiKey = configured == null ? "" : configured.apiKey();
     }
     @Override public boolean suporta(Mercado mercado) { return mercado == Mercado.EUA && StringUtils.hasText(apiKey); }
     @Override public CotacaoConsulta buscarCotacao(String ticker) {
@@ -43,7 +44,7 @@ public class TwelveDataCotacaoAdapter implements CotacaoAdapter {
             String close = body.path("close").asText();
             BigDecimal price = StringUtils.hasText(close) ? new BigDecimal(close) : BigDecimal.ZERO;
             if (!StringUtils.hasText(symbol) || !StringUtils.hasText(name) || !"USD".equals(currency) || price.signum() <= 0) throw new ExternalIntegrationException("Twelve Data retornou dados incompletos para " + ticker);
-            return new CotacaoConsulta(symbol, name, Mercado.EUA, Moeda.USD, price, OffsetDateTime.now(), null, FonteCotacao.TWELVE_DATA, "US", exchange, null);
+            return new CotacaoConsulta(symbol, name, Mercado.EUA, Moeda.USD, price, OffsetDateTime.now(), buscarLogo(symbol, exchange), FonteCotacao.TWELVE_DATA, "US", exchange, null);
         } catch (ResourceNotFoundException | ProviderUnauthorizedException exception) { throw exception; }
         catch (HttpClientErrorException.Unauthorized exception) { throw new ProviderUnauthorizedException("A chave da Twelve Data foi rejeitada pela fonte."); }
         catch (RestClientResponseException exception) {
@@ -56,6 +57,27 @@ public class TwelveDataCotacaoAdapter implements CotacaoAdapter {
             // Nunca incluir a URL da requisi\u00e7\u00e3o aqui: ela cont\u00e9m a chave da fonte.
             log.warn("Falha da Twelve Data para ticker={} tipo={}", ticker, exception.getClass().getSimpleName());
             throw new ExternalIntegrationException("Falha ao consultar a Twelve Data");
+        }
+    }
+
+    /**
+     * A cotação e o logotipo são recursos independentes na Twelve Data. Uma
+     * falha no endpoint de logo nunca invalida uma cotação válida; nesse caso
+     * o componente compartilhado usa o fallback seguro.
+     */
+    private String buscarLogo(String symbol, String exchange) {
+        try {
+            String rawBody = client.get().uri(uri -> uri.path("/logo")
+                    .queryParam("symbol", symbol)
+                    .queryParamIfPresent("exchange", StringUtils.hasText(exchange) ? java.util.Optional.of(exchange) : java.util.Optional.empty())
+                    .queryParam("apikey", apiKey).build()).retrieve().body(String.class);
+            JsonNode body = rawBody == null ? null : OBJECT_MAPPER.readTree(rawBody);
+            String url = body == null ? null : body.path("url").asText(null);
+            return StringUtils.hasText(url) && url.trim().toLowerCase(java.util.Locale.ROOT).startsWith("https://")
+                    ? url.trim() : null;
+        } catch (Exception exception) {
+            log.debug("Logo indisponível na Twelve Data para ticker={} tipo={}", symbol, exception.getClass().getSimpleName());
+            return null;
         }
     }
 }

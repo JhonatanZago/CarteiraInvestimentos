@@ -56,4 +56,17 @@ class BrapiCotacaoAdapterTest {
 
         assertThat(adapter.buscarCotacao("PETR4").logoUrl()).isEqualTo("https://cdn.example.com/petr4.png");
     }
+
+    @Test
+    void mapsLogoWhenBrapiReturnsItInsideMarketData() {
+        server.expect(requestTo("https://brapi.test/api/v2/stocks/quote?symbols=VALE3"))
+                .andRespond(withSuccess("""
+                        {"results":[{"symbol":"VALE3","longName":"Vale S.A.","currency":"BRL",
+                        "regularMarketPrice":79.10,"regularMarketTime":"2026-09-04T15:30:00Z",
+                        "data":{"longName":"Vale S.A.","currency":"BRL","regularMarketPrice":79.10,
+                        "regularMarketTime":"2026-09-04T15:30:00Z","logourl":"https://cdn.example.com/vale3.png"}}]}
+                        """, MediaType.APPLICATION_JSON));
+
+        assertThat(adapter.buscarCotacao("VALE3").logoUrl()).isEqualTo("https://cdn.example.com/vale3.png");
+    }
 }

@@ -44,12 +44,12 @@ public class VendaService {
 
     @Transactional(readOnly = true)
     public List<VendaResponse> listar(Long carteiraId) {
-        if (!carteiras.existsById(carteiraId)) throw new ResourceNotFoundException("Carteira nao encontrada");
+        if (com.example.carteirainvestimento.security.CurrentUser.id().isPresent() ? carteiras.findByIdAndUsuarioId(carteiraId, com.example.carteirainvestimento.security.CurrentUser.id().get()).isEmpty() : !carteiras.existsById(carteiraId)) throw new ResourceNotFoundException("Carteira nao encontrada");
         return vendas.findByCarteiraIdOrderByDataVendaDescIdDesc(carteiraId).stream().map(v -> new VendaResponse(v.getId(), carteiraId, v.getPosicaoId(), v.getAcao().getTicker(), v.getAcao().getNomeEmpresa(), v.getAcao().getLogoUrl(), v.getQuantidade(), null, null, v.getPrecoMedio(), v.getPrecoVenda(), v.getTaxas(), v.getValorBruto(), v.getCustoPosicao(), v.getResultadoRealizado(), percentual(v.getResultadoRealizado(), v.getCustoPosicao()), v.getMoeda(), v.getDataVenda())).toList();
     }
 
     private AtivoCarteira buscarPosicao(Long carteiraId, VendaRequest request) {
-        if (!carteiras.existsById(carteiraId)) throw new ResourceNotFoundException("Carteira nao encontrada");
+        if (com.example.carteirainvestimento.security.CurrentUser.id().isPresent() ? carteiras.findByIdAndUsuarioId(carteiraId, com.example.carteirainvestimento.security.CurrentUser.id().get()).isEmpty() : !carteiras.existsById(carteiraId)) throw new ResourceNotFoundException("Carteira nao encontrada");
         if (request == null || request.posicaoId() == null) throw new BusinessRuleException("Posicao obrigatoria");
         return ativos.findByIdAndCarteiraId(request.posicaoId(), carteiraId).orElseThrow(() -> new ResourceNotFoundException("Posicao nao encontrada nesta carteira"));
     }

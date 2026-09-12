@@ -38,7 +38,7 @@ public class DashboardCarteiraService {
 
     @Transactional(readOnly = true)
     public DashboardCarteiraResponse calcular(Long carteiraId) {
-        if (!carteiras.existsById(carteiraId)) {
+        if (com.example.carteirainvestimento.security.CurrentUser.id().isPresent() ? carteiras.findByIdAndUsuarioId(carteiraId, com.example.carteirainvestimento.security.CurrentUser.id().get()).isEmpty() : !carteiras.existsById(carteiraId)) {
             throw new ResourceNotFoundException("Carteira nao encontrada");
         }
 
@@ -108,7 +108,7 @@ public class DashboardCarteiraService {
 
     @Transactional(readOnly = true)
     public AnaliseMoedasResponse analisarMoedas(Long carteiraId) {
-        if (!carteiras.existsById(carteiraId)) throw new ResourceNotFoundException("Carteira nao encontrada");
+        if (com.example.carteirainvestimento.security.CurrentUser.id().isPresent() ? carteiras.findByIdAndUsuarioId(carteiraId, com.example.carteirainvestimento.security.CurrentUser.id().get()).isEmpty() : !carteiras.existsById(carteiraId)) throw new ResourceNotFoundException("Carteira nao encontrada");
         List<AtivoCarteira> posicoes = ativos.findByCarteiraId(carteiraId);
         BigDecimal taxaUsdBrl = exchangeRates == null ? null : exchangeRates.usdToBrl();
         var linhas = consolidar(carteiraId, posicoes, taxaUsdBrl);

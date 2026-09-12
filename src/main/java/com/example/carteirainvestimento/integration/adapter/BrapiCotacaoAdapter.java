@@ -67,8 +67,10 @@ public class BrapiCotacaoAdapter implements CotacaoAdapter {
             Moeda quoteCurrency = moeda(currency);
             Mercado detectedMarket = quoteCurrency == Moeda.BRL ? Mercado.BRASIL : Mercado.EUA;
             String exchange = quote.exchangeName() != null ? quote.exchangeName() : quote.exchange();
+            String logoUrl = quote.data() != null && StringUtils.hasText(quote.data().logoUrl())
+                    ? quote.data().logoUrl() : quote.logoUrl();
             return new CotacaoConsulta(quote.symbol(), longName, detectedMarket, quoteCurrency, price, marketTime,
-                    logoHttps(quote.logoUrl()), FonteCotacao.BRAPI,
+                    logoHttps(logoUrl), FonteCotacao.BRAPI,
                     detectedMarket == Mercado.BRASIL ? "BR" : "US", exchange, quote.exchangeMic());
         } catch (RestClientException | HttpMessageConversionException exception) {
             String reason = exception.getMessage() == null ? "" : exception.getMessage();
@@ -129,6 +131,7 @@ public class BrapiCotacaoAdapter implements CotacaoAdapter {
     }
 
     private record BrapiMarketData(String longName, String currency, BigDecimal regularMarketPrice,
-                                   OffsetDateTime regularMarketTime) {
+                                   OffsetDateTime regularMarketTime, String logourl) {
+        String logoUrl() { return logourl; }
     }
 }

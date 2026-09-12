@@ -1,0 +1,19 @@
+<main class="auth-page register-page">
+  <div class="auth-background" aria-hidden="true">
+    <div class="market-panel market-panel--growth"><span>Evolução do patrimônio</span><strong class="illustrative-value">R$ 287.430,12 <em>▲ +12,4%</em></strong><svg viewBox="0 0 260 130"><path class="grid-line" d="M0 25h260M0 65h260M0 105h260"/><path class="growth-fill" d="M0 105 C35 82 48 98 74 72 S115 92 142 58 S180 70 205 42 S235 48 260 16 V130H0Z"/><path class="growth-line" d="M0 105 C35 82 48 98 74 72 S115 92 142 58 S180 70 205 42 S235 48 260 16"/></svg><div class="chart-axis"><span>Jan</span><span>Fev</span><span>Mar</span><span>Abr</span><span>Mai</span><span>Jun</span></div></div>
+    <div class="market-panel market-panel--allocation"><span>Alocação da carteira</span><div class="allocation-body"><div class="donut"><i>100%<small>do seu patrimônio</small></i></div><ul><li><b class="dot dot--green"></b>Ações <small>28%</small></li><li><b class="dot dot--blue"></b>Renda fixa <small>42%</small></li><li><b class="dot dot--slate"></b>Fundos imobiliários <small>15%</small></li><li><b class="dot dot--teal"></b>Internacional <small>10%</small></li><li><b class="dot dot--gold"></b>Outros <small>5%</small></li></ul></div></div>
+    <p class="auth-quote auth-quote--left">Disciplina hoje,<br>liberdade amanhã.</p><p class="auth-quote auth-quote--right">Investir é construir<br>um amanhã maior.</p><span class="illustrative-label">Visual ilustrativo</span>
+  </div>
+  <section class="register-card">
+    <header><div class="brand-lockup"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span class="brand-name">CARTEIRA</span></div><h1>Crie sua conta</h1><p class="card-subtitle">Comece a organizar seus investimentos.</p></header>
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <label>Nome<input formControlName="nome" autocomplete="name" placeholder="Seu nome"></label>
+      @if(form.controls.nome.touched&&form.controls.nome.invalid){<small class="field-error">Informe seu nome.</small>}
+      <label>E-mail<input type="email" formControlName="email" autocomplete="email" placeholder="Seu e-mail"></label>
+      @if(form.controls.email.touched&&form.controls.email.invalid){<small class="field-error">Digite um e-mail válido.</small>}
+      <label>Senha<div class="password-field"><input [type]="showPassword?'text':'password'" formControlName="senha" autocomplete="new-password" placeholder="Crie uma senha"><button type="button" (click)="showPassword=!showPassword" [attr.aria-label]="showPassword?'Ocultar senha':'Mostrar senha'">{{showPassword?'Ocultar':'Mostrar'}}</button></div></label>
+      <label>Confirmar senha<div class="password-field"><input [type]="showConfirmation?'text':'password'" formControlName="confirmacaoSenha" autocomplete="new-password" placeholder="Repita sua senha"><button type="button" (click)="showConfirmation=!showConfirmation" [attr.aria-label]="showConfirmation?'Ocultar confirmação':'Mostrar confirmação'">{{showConfirmation?'Ocultar':'Mostrar'}}</button></div></label>
+      @if(form.controls.confirmacaoSenha.touched&&form.controls.senha.value!==form.controls.confirmacaoSenha.value){<small class="field-error">As senhas não coincidem.</small>}@if(error){<p class="form-error" role="alert">{{error}}</p>}@if(success){<p class="form-success" role="status">{{success}}</p>}<button class="primary-action" type="submit" [disabled]="form.invalid||loading()">{{loading()?'Criando…':'Criar conta'}}</button>
+    </form><p class="register-link">Já tem uma conta? <a routerLink="/login">Entrar</a></p>
+  </section>
+</main>

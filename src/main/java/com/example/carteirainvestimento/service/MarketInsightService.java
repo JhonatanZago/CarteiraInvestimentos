@@ -100,6 +100,6 @@ public class MarketInsightService {
     private PontoEvolucaoCarteiraResponse ponto(PortfolioSnapshot snapshot) { return new PontoEvolucaoCarteiraResponse(snapshot.getDataHora(), snapshot.getTotalInvestido(), snapshot.getPatrimonioAtual(), DisponibilidadeInsight.AVAILABLE, snapshot.getDataHora(), snapshot.getTotalInvestido(), snapshot.getPatrimonioAtual(), snapshot.getResultado(), snapshot.getRentabilidade()); }
     private IndicadorMercadoResponse indisponivel(String codigo, String descricao) { return new IndicadorMercadoResponse(codigo, descricao, null, null, null, DisponibilidadeInsight.UNAVAILABLE); }
     private IndicadorMercadoResponse marcarDesatualizado(IndicadorMercadoResponse indicador) { return new IndicadorMercadoResponse(indicador.codigo(), indicador.descricao(), indicador.valor(), indicador.variacaoPercentual(), indicador.referenciaEm(), DisponibilidadeInsight.STALE); }
-    private void validarCarteira(Long id) { if (!carteiras.existsById(id)) throw new ResourceNotFoundException("Carteira nao encontrada"); }
+    private void validarCarteira(Long id) { var uid=com.example.carteirainvestimento.security.CurrentUser.id(); boolean ok=uid.isPresent()?carteiras.findByIdAndUsuarioId(id,uid.get()).isPresent():carteiras.existsById(id); if (!ok) throw new ResourceNotFoundException("Carteira nao encontrada"); }
     private record IndicadoresEmCache(List<IndicadorMercadoResponse> indicadores, OffsetDateTime criadoEm) { }
 }

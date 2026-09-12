@@ -119,7 +119,8 @@ public class AtivoCarteiraService {
     }
 
     private Carteira buscarCarteira(Long id) {
-        return carteiras.findById(id)
+        var carteira = com.example.carteirainvestimento.security.CurrentUser.id().flatMap(uid -> carteiras.findByIdAndUsuarioId(id, uid));
+        return carteira.or(() -> com.example.carteirainvestimento.security.CurrentUser.id().isPresent() ? java.util.Optional.empty() : carteiras.findById(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Carteira nao encontrada"));
     }
 
