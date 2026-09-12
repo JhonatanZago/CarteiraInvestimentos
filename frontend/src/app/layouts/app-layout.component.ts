@@ -8,6 +8,7 @@ import { AuthService } from '../core/auth/auth.service';
 export class AppLayoutComponent {
   readonly menuOpen=signal(false); readonly accountOpen=signal(false);
   readonly notifications=inject(NotificationService); readonly themeService=inject(ThemeService); readonly auth=inject(AuthService); private readonly router=inject(Router);
+  isOverviewRoute():boolean { return this.router.url === '/visao-geral' || this.router.url === '/dashboard' || this.router.url.startsWith('/dashboard/'); }
   initials(name:string,email:string):string { const source=(name||'').trim() || (email||'').split('@')[0]; const parts=source.split(/\s+/).filter(Boolean); return (parts.length>1 ? parts[0][0]+parts[parts.length-1][0] : source.slice(0,2)).toUpperCase(); }
   toggleAccount():void { this.accountOpen.update(v=>!v); }
   closeMenus():void { this.accountOpen.set(false); this.menuOpen.set(false); }

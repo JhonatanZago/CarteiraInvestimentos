@@ -1,5 +1,5 @@
 /* Garantia visual para a rota real de autenticação. */
-.login-page,.register-page{background-color:#06121d!important;background-image:linear-gradient(rgba(4,18,28,.08),rgba(4,18,28,.12)),url('/assets/auth/auth-template-b-reference.png')!important;background-size:cover!important;background-position:center!important}
+.login-page,.register-page{background-color:#06121d!important;background-image:linear-gradient(rgba(4,18,28,.08),rgba(4,18,28,.12)),url('/assets/auth/auth-template-b-no-card.png')!important;background-size:cover!important;background-position:center!important}
 .login-page .login-card,.register-page .register-card{background-color:rgba(8,28,40,.52)!important;background-image:linear-gradient(135deg,rgba(34,73,84,.14),rgba(4,20,31,.16))!important;backdrop-filter:blur(10px) saturate(125%)!important;-webkit-backdrop-filter:blur(10px) saturate(125%)!important;border-color:rgba(174,220,218,.46)!important;box-shadow:0 24px 70px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.1)!important}
 .login-page .market-panel,.login-page .auth-quote,.login-page .illustrative-label,.register-page .market-panel,.register-page .auth-quote,.register-page .illustrative-label{display:none!important}
 .auth-page .auth-background{background:transparent!important}.auth-page .auth-background::after{display:none!important}.login-page{overflow:hidden!important}

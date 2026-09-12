@@ -2,7 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpContext } from '@angular/common/http';
-import { catchError, finalize, forkJoin, of } from 'rxjs';
+import { catchError, finalize, of } from 'rxjs';
 import { CarteirasApiService, DashboardApiService, InsightsApiService } from '../core/api/api.services';
 import { Carteira, DashboardCarteira, IncomeSummary, MarketIndicator, PortfolioEvolutionPoint, CurrencyAnalysis } from '../core/api/api.models';
 import { SILENT_HTTP_ERROR } from '../core/api/silent-http-error';
@@ -87,5 +87,51 @@ export class InsightsDashboardPage {
   selectHeroPoint(event: PointerEvent): void { const svg = event.currentTarget as SVGElement; const bounds = svg.getBoundingClientRect(); if (!bounds.width) return; const x = Math.max(0, Math.min(480, (event.clientX - bounds.left) / bounds.width * 480)); const point = this.heroChartPoints().reduce<ChartPoint | null>((closest, candidate) => !closest || Math.abs(candidate.x - x) < Math.abs(closest.x - x) ? candidate : closest, null); this.hoveredHeroPoint.set(point); }
   changePortfolio(id: number): void { if (!id || id === this.selectedId()) return; this.selectedId.set(id); void this.router.navigate(['/dashboard', id]); this.load(id); this.loadCurrencyAnalysis(id); } refresh(): void { if (this.selectedId()) { this.load(this.selectedId()); this.loadCurrencyAnalysis(this.selectedId()); } } retry(): void { this.refresh(); }
   private loadPortfolios(): void { this.portfoliosApi.list(0, 100).pipe(catchError(() => { this.portfoliosUnavailable.set(true); return of({ content: [] } as { content: Carteira[] }); })).subscribe(page => { this.portfolios.set(page.content); const routeId = this.selectedId(); const valid = page.content.some(item => item.id === routeId); if (!valid && page.content.length) { const first = page.content[0].id; this.selectedId.set(first); void this.router.navigate(['/dashboard', first], { replaceUrl: true }); if (!this.dashboard()) this.load(first); } }); }
-  private load(id: number): void { this.loading.set(true); this.mainError.set(false); this.supplementaryFailures.set({ indicators: false, evolution: false, income: false }); const context = new HttpContext().set(SILENT_HTTP_ERROR, true); forkJoin({ dashboard: this.dashboardApi.getPortfolio(id, context), indicators: this.insightsApi.indicators(context).pipe(catchError(() => { this.supplementaryFailures.update(value => ({ ...value, indicators: true })); return of([]); })), evolution: this.insightsApi.evolution(id, context).pipe(catchError(() => { this.supplementaryFailures.update(value => ({ ...value, evolution: true })); return of([]); })), income: this.insightsApi.income(id, context).pipe(catchError(() => { this.supplementaryFailures.update(value => ({ ...value, income: true })); return of(null); })) }).pipe(finalize(() => this.loading.set(false))).subscribe({ next: data => { this.dashboard.set(data.dashboard); this.indicators.set(data.indicators); this.evolution.set(data.evolution); this.income.set(data.income); }, error: () => { this.dashboard.set(null); this.mainError.set(true); } }); }
+  private load(id: number): void {
+    this.loading.set(true);
+    this.mainError.set(false);
+    this.supplementaryFailures.set({ indicators: false, evolution: false, income: false });
+    const context = new HttpContext().set(SILENT_HTTP_ERROR, true);
+
+    this.dashboardApi.getPortfolio(id, context).pipe(finalize(() => {
+      if (id === this.selectedId()) this.loading.set(false);
+    })).subscribe({
+      next: dashboard => {
+        if (id !== this.selectedId()) return;
+        this.dashboard.set(dashboard);
+      },
+      error: () => {
+        if (id !== this.selectedId()) return;
+        this.dashboard.set(null);
+        this.mainError.set(true);
+      },
+    });
+
+    this.insightsApi.evolution(id, context).subscribe({
+      next: evolution => {
+        if (id === this.selectedId()) this.evolution.set(evolution);
+      },
+      error: () => {
+        if (id === this.selectedId()) this.supplementaryFailures.update(value => ({ ...value, evolution: true }));
+      },
+    });
+
+    this.insightsApi.indicators(context).subscribe({
+      next: indicators => {
+        if (id === this.selectedId()) this.indicators.set(indicators);
+      },
+      error: () => {
+        if (id === this.selectedId()) this.supplementaryFailures.update(value => ({ ...value, indicators: true }));
+      },
+    });
+
+    this.insightsApi.income(id, context).subscribe({
+      next: income => {
+        if (id === this.selectedId()) this.income.set(income);
+      },
+      error: () => {
+        if (id === this.selectedId()) this.supplementaryFailures.update(value => ({ ...value, income: true }));
+      },
+    });
+  }
 }
