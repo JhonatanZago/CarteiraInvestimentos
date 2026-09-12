@@ -15,7 +15,7 @@ type PeriodFilter = 6 | 12 | 0;
   standalone: true,
   imports: [FormsModule, DecimalPipe, AssetLogoComponent],
   templateUrl: './vendas.current.html',
-  styleUrls: ['./vendas.page.scss', './vendas.analytics.scss', './vendas.combined.scss', './vendas.compact.scss', './vendas.final.scss', './vendas.chartfix.scss']
+  styleUrls: ['./vendas.page.scss', './vendas.analytics.scss', './vendas.combined.scss', './vendas.compact.scss', './vendas.final.scss', './vendas.chartfix.scss', './vendas.history.scss']
 })
 export class VendasPage {
   private api=inject(CarteirasApiService); private notice=inject(NotificationService); readonly money=money;

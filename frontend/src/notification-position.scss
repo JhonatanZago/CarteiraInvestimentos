@@ -1,4 +1,5 @@
 /* Posicionamento global do container único de notificações. */
 .toasts{position:fixed!important;top:20px!important;right:20px!important;bottom:auto!important;left:auto!important;width:min(360px,calc(100vw - 32px))!important;max-width:calc(100vw - 32px)!important;z-index:2000!important;display:grid!important;gap:10px!important;pointer-events:none}
 .toasts .toast{pointer-events:auto;width:100%;box-sizing:border-box}
+.toasts > button.error{background:#b91c1c;color:#fff}.toasts > button.success{background:var(--accent-600);color:#fff}.toasts > button.info{background:var(--brand-800);color:#fff}.toasts > button.warning{background:#b7791f;color:#fff}
 @media(max-width:600px){.toasts{top:16px!important;right:16px!important;width:calc(100vw - 32px)!important;max-width:calc(100vw - 32px)!important}}

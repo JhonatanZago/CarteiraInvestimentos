@@ -64,6 +64,7 @@
               "src/auth-fix.scss",
               "src/auth-guarantee.scss",
               "src/notification-position.scss"
+              ,"src/carteiras-ticker.scss"
             ]
           },
           "configurations": {

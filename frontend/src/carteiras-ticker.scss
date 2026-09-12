@@ -1,0 +1,10 @@
+body .positions-table .asset-ticker,
+body .positions-table .asset-cell > span > strong.asset-ticker {
+  color: var(--asset-ticker-color, #34d399) !important;
+  font-weight: 800;
+}
+
+:root[data-theme='light'] body .positions-table .asset-ticker,
+body[data-theme='light'] .positions-table .asset-ticker {
+  color: #047857 !important;
+}
