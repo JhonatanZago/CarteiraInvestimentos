@@ -54,7 +54,7 @@ class AtivoCarteiraServiceTest {
     void criaPosicaoComDadosValidos() {
         AtivoCarteiraRequest request = request(new BigDecimal("10"), new BigDecimal("25.50"), LocalDate.now());
         when(carteiras.findById(1L)).thenReturn(Optional.of(carteira));
-        when(ativos.existsByCarteiraIdAndAcaoIdAndCorretoraId(1L, 2L, 3L)).thenReturn(false);
+        when(ativos.findByCarteiraIdAndAcaoIdAndCorretoraId(1L, 2L, 3L)).thenReturn(Optional.empty());
         when(acoes.findById(2L)).thenReturn(Optional.of(acao));
         when(corretoras.findById(3L)).thenReturn(Optional.of(corretora));
         when(ativos.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -79,18 +79,21 @@ class AtivoCarteiraServiceTest {
     }
 
     @Test
-    void rejeitaPosicaoDuplicada() {
+    void somaCompraNaPosicaoExistente() {
         when(carteiras.findById(1L)).thenReturn(Optional.of(carteira));
-        when(ativos.existsByCarteiraIdAndAcaoIdAndCorretoraId(1L, 2L, 3L)).thenReturn(true);
+        AtivoCarteira existente = new AtivoCarteira(); existente.setCarteira(carteira); existente.setQuantidade(new BigDecimal("5")); existente.setPrecoMedio(new BigDecimal("100"));
+        when(ativos.findByCarteiraIdAndAcaoIdAndCorretoraId(1L, 2L, 3L)).thenReturn(Optional.of(existente));
+        when(ativos.save(existente)).thenReturn(existente);
 
-        assertThatThrownBy(() -> service.criar(1L, request(BigDecimal.ONE, BigDecimal.ONE, LocalDate.now())))
-                .isInstanceOf(DuplicateResourceException.class);
+        AtivoCarteira result = service.criar(1L, request(new BigDecimal("5"), new BigDecimal("70"), LocalDate.now()));
+        assertThat(result.getQuantidade()).isEqualByComparingTo("10");
+        assertThat(result.getPrecoMedio()).isEqualByComparingTo("85");
     }
 
     @Test
     void rejeitaAcaoOuCorretoraInexistente() {
         when(carteiras.findById(1L)).thenReturn(Optional.of(carteira));
-        when(ativos.existsByCarteiraIdAndAcaoIdAndCorretoraId(1L, 2L, 3L)).thenReturn(false);
+        when(ativos.findByCarteiraIdAndAcaoIdAndCorretoraId(1L, 2L, 3L)).thenReturn(Optional.empty());
         when(acoes.findById(2L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.criar(1L, request(BigDecimal.ONE, BigDecimal.ONE, LocalDate.now())))

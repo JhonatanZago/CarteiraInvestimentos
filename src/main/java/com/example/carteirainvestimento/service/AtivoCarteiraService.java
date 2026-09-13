@@ -13,6 +13,8 @@ import com.example.carteirainvestimento.repository.AtivoCarteiraRepository;
 import com.example.carteirainvestimento.repository.CarteiraRepository;
 import com.example.carteirainvestimento.repository.CorretoraRepository;
 import java.time.LocalDate;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Comparator;
 import com.example.carteirainvestimento.enums.Mercado;
@@ -43,7 +45,18 @@ public class AtivoCarteiraService {
     public AtivoCarteira criar(Long carteiraId, AtivoCarteiraRequest request) {
         validarDados(request);
         Carteira carteira = buscarCarteira(carteiraId);
-        validarPosicaoUnica(carteiraId, request.acaoId(), request.corretoraId());
+        var existente = ativos.findByCarteiraIdAndAcaoIdAndCorretoraId(carteiraId, request.acaoId(), request.corretoraId());
+        if (existente.isPresent()) {
+            AtivoCarteira ativo = existente.get();
+            BigDecimal custoAnterior = ativo.getQuantidade().multiply(ativo.getPrecoMedio());
+            BigDecimal custoCompra = request.quantidade().multiply(request.precoMedio());
+            BigDecimal novaQuantidade = ativo.getQuantidade().add(request.quantidade());
+            ativo.setQuantidade(novaQuantidade);
+            ativo.setPrecoMedio(custoAnterior.add(custoCompra).divide(novaQuantidade, 8, RoundingMode.HALF_EVEN));
+            AtivoCarteira salvo = ativos.save(ativo);
+            snapshots.registrarEvento(carteiraId, OrigemSnapshotCarteira.POSITION_UPDATED);
+            return salvo;
+        }
 
         AtivoCarteira ativo = new AtivoCarteira();
         preencher(ativo, carteira, request);
@@ -109,12 +122,6 @@ public class AtivoCarteiraService {
         }
         if (request.dataPrimeiraCompra() == null || request.dataPrimeiraCompra().isAfter(LocalDate.now())) {
             throw new BusinessRuleException("Data da primeira compra nao pode estar no futuro");
-        }
-    }
-
-    private void validarPosicaoUnica(Long carteiraId, Long acaoId, Long corretoraId) {
-        if (ativos.existsByCarteiraIdAndAcaoIdAndCorretoraId(carteiraId, acaoId, corretoraId)) {
-            throw new DuplicateResourceException("Posicao ja cadastrada para esta acao e corretora");
         }
     }
 

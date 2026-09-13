@@ -22,6 +22,9 @@ public interface AtivoCarteiraRepository extends JpaRepository<AtivoCarteira, Lo
 
     boolean existsByCarteiraIdAndAcaoIdAndCorretoraId(Long carteiraId, Long acaoId, Long corretoraId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<AtivoCarteira> findByCarteiraIdAndAcaoIdAndCorretoraId(Long carteiraId, Long acaoId, Long corretoraId);
+
     boolean existsByCarteiraIdAndAcaoIdAndCorretoraIdAndIdNot(
             Long carteiraId, Long acaoId, Long corretoraId, Long id);
 
