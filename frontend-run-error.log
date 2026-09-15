@@ -1,0 +1,159 @@
+npm notice run frontend@0.0.0 start
+npm notice run ng serve --host 127.0.0.1
+▲ [WARNING] NG8113: DecimalPipe is not used within the template of VendasPage [plugin angular-compiler]
+
+    src/app/features/vendas.page.ts:16:25:
+      16 │   imports: [FormsModule, DecimalPipe, AssetLogoComponent],
+         ╵                          ~~~~~~~~~~~
+
+
+X [ERROR] Cannot read directory "../../..": Access is denied. [plugin angular-compiler]
+
+
+X [ERROR] Could not resolve "C:\\Users\\jhona\\Desktop\\CarteiraInvestimento\\frontend\\src\\app\\shared\\asset-logo.component.scss" [plugin angular-compiler]
+
+
+X [ERROR] Cannot read directory "../../..": Access is denied. [plugin angular-compiler]
+
+
+X [ERROR] Could not resolve "C:\\Users\\jhona\\Desktop\\CarteiraInvestimento\\frontend\\src\\app\\shared\\broker-logo.component.scss" [plugin angular-compiler]
+
+
+X [ERROR] Cannot read directory "../../..": Access is denied. [plugin angular-compiler]
+
+
+X [ERROR] Could not resolve "C:\\Users\\jhona\\Desktop\\CarteiraInvestimento\\frontend\\src\\app\\features\\vendas.page.scss" [plugin angular-compiler]
+
+
+X [ERROR] Cannot read directory "../../..": Access is denied. [plugin angular-compiler]
+
+
+X [ERROR] Could not resolve "C:\\Users\\jhona\\Desktop\\CarteiraInvestimento\\frontend\\src\\app\\features\\vendas.analytics.scss" [plugin angular-compiler]
+
+
+X [ERROR] Cannot read directory "../../..": Access is denied. [plugin angular-compiler]
+
+
+X [ERROR] Could not resolve "C:\\Users\\jhona\\Desktop\\CarteiraInvestimento\\frontend\\src\\app\\features\\vendas.compact.scss" [plugin angular-compiler]
+
+
+X [ERROR] Cannot read directory "../../..": Access is denied. [plugin angular-compiler]
+
+
+X [ERROR] Could not resolve "C:\\Users\\jhona\\Desktop\\CarteiraInvestimento\\frontend\\src\\app\\features\\auth\\register\\register.page.scss" [plugin angular-compiler]
+
+
+X [ERROR] Cannot read directory "../../..": Access is denied. [plugin angular-compiler]
+
+
+X [ERROR] Could not resolve "C:\\Users\\jhona\\Desktop\\CarteiraInvestimento\\frontend\\src\\app\\features\\vendas.combined.scss" [plugin angular-compiler]
+
+
+X [ERROR] Cannot read directory "../../..": Access is denied. [plugin angular-compiler]
+
+
+X [ERROR] Could not resolve "C:\\Users\\jhona\\Desktop\\CarteiraInvestimento\\frontend\\src\\app\\layouts\\app-layout.component.scss" [plugin angular-compiler]
+
+
+X [ERROR] Cannot read directory "../../..": Access is denied. [plugin angular-compiler]
+
+
+X [ERROR] Could not resolve "C:\\Users\\jhona\\Desktop\\CarteiraInvestimento\\frontend\\src\\app\\features\\vendas.final.scss" [plugin angular-compiler]
+
+
+X [ERROR] Cannot read directory "../../..": Access is denied. [plugin angular-compiler]
+
+
+X [ERROR] Could not resolve "C:\\Users\\jhona\\Desktop\\CarteiraInvestimento\\frontend\\src\\app\\features\\vendas.chartfix.scss" [plugin angular-compiler]
+
+
+X [ERROR] Cannot read directory "../../..": Access is denied. [plugin angular-compiler]
+
+
+X [ERROR] Could not resolve "C:\\Users\\jhona\\Desktop\\CarteiraInvestimento\\frontend\\src\\app\\features\\auth\\login\\login.page.scss" [plugin angular-compiler]
+
+
+X [ERROR] Cannot read directory "../../..": Access is denied. [plugin angular-compiler]
+
+
+X [ERROR] Could not resolve "C:\\Users\\jhona\\Desktop\\CarteiraInvestimento\\frontend\\src\\notification-position.scss" [plugin angular-compiler]
+
+
+X [ERROR] Cannot read directory "../../..": Access is denied. [plugin angular-compiler]
+
+
+X [ERROR] Could not resolve "C:\\Users\\jhona\\Desktop\\CarteiraInvestimento\\frontend\\src\\app\\features\\vendas.history.scss" [plugin angular-compiler]
+
+
+X [ERROR] Cannot read directory "../../..": Access is denied.
+
+
+X [ERROR] Could not resolve "C:\\Users\\jhona\\Desktop\\CarteiraInvestimento\\frontend\\src\\main.ts"
+
+
+X [ERROR] Cannot read directory "../../..": Access is denied.
+
+
+X [ERROR] Could not resolve "src/styles.scss"
+
+    angular:styles/global:styles:1:8:
+      1 │ @import 'src/styles.scss';
+        ╵         ~~~~~~~~~~~~~~~~~
+
+  You can mark the path "src/styles.scss" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+
+
+X [ERROR] Could not resolve "src/auth-visual.scss"
+
+    angular:styles/global:styles:2:8:
+      2 │ @import 'src/auth-visual.scss';
+        ╵         ~~~~~~~~~~~~~~~~~~~~~~
+
+  You can mark the path "src/auth-visual.scss" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+
+
+X [ERROR] Could not resolve "src/auth-light.scss"
+
+    angular:styles/global:styles:3:8:
+      3 │ @import 'src/auth-light.scss';
+        ╵         ~~~~~~~~~~~~~~~~~~~~~
+
+  You can mark the path "src/auth-light.scss" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+
+
+X [ERROR] Could not resolve "src/auth-fix.scss"
+
+    angular:styles/global:styles:4:8:
+      4 │ @import 'src/auth-fix.scss';
+        ╵         ~~~~~~~~~~~~~~~~~~~
+
+  You can mark the path "src/auth-fix.scss" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+
+
+X [ERROR] Could not resolve "src/auth-guarantee.scss"
+
+    angular:styles/global:styles:5:8:
+      5 │ @import 'src/auth-guarantee.scss';
+        ╵         ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  You can mark the path "src/auth-guarantee.scss" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+
+
+X [ERROR] Could not resolve "src/notification-position.scss"
+
+    angular:styles/global:styles:6:8:
+      6 │ @import 'src/notification-position.scss';
+        ╵         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  You can mark the path "src/notification-position.scss" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+
+
+X [ERROR] Could not resolve "src/carteiras-ticker.scss"
+
+    angular:styles/global:styles:7:8:
+      7 │ @import 'src/carteiras-ticker.scss';
+        ╵         ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  You can mark the path "src/carteiras-ticker.scss" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+
+

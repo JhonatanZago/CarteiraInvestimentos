@@ -2,8 +2,17 @@
 FAILURE: Build failed with an exception.
 
 * What went wrong:
-Execution failed for task ':bootRun' (registered by plugin 'org.springframework.boot').
-> Process 'command 'C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot\bin\java.exe'' finished with non-zero exit value 1
+Execution failed for task ':compileJava' (registered by plugin class 'org.gradle.api.plugins.JavaBasePlugin').
+> Could not resolve all files for configuration ':compileClasspath'.
+   > Could not resolve org.springframework.boot:spring-boot-starter-security:4.0.8.
+     Required by:
+         root project 'CarteiraInvestimento'
+      > Repository MavenRepo is disabled due to earlier error below:
+         > Could not resolve org.springframework.boot:spring-boot-starter-security:4.0.8.
+            > Could not get resource 'https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-starter-security/4.0.8/spring-boot-starter-security-4.0.8.pom'.
+               > Could not GET 'https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-starter-security/4.0.8/spring-boot-starter-security-4.0.8.pom'.
+                  > Got socket exception during request. It might be caused by SSL misconfiguration
+                     > Permission denied: getsockopt
 
 * Try:
 > Run with --stacktrace option to get the stack trace.
@@ -11,4 +20,4 @@ Execution failed for task ':bootRun' (registered by plugin 'org.springframework.
 > Run with --scan to get full insights from a Build Scan (powered by Develocity).
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 47s
+BUILD FAILED in 1m 31s
