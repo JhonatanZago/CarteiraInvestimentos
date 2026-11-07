@@ -13,7 +13,7 @@ import { AppLayoutComponent } from './layouts/app-layout.component';
 
 export const routes: Routes = [
   { path: '', component: AuthLayoutComponent, canActivate: [guestGuard], children: [
-    { path: 'login', component: LoginPage }, { path: 'cadastro', component: RegisterPage }, { path: 'esqueci-minha-senha', component: ForgotPasswordPage }, { path: 'redefinir-senha', component: ResetPasswordPage }
+    { path: 'login', component: LoginPage }, { path: 'cadastro', component: RegisterPage }, { path: 'esqueci-minha-senha', component: ForgotPasswordPage }, { path: 'redefinir-senha', component: ResetPasswordPage }, { path: '', pathMatch: 'full', redirectTo: 'login' }
   ]},
   { path: '', component: AppLayoutComponent, canActivate: [authGuard], children: [
     { path: 'corretoras', component: CorretorasPage }, { path: 'acoes', component: AcoesPage }, { path: 'carteiras', component: CarteirasPage }, { path: 'historico/:acaoId', component: HistoricoPage }, { path: 'carteiras/:carteiraId/posicoes', component: PositionTablePage }, { path: 'vendas', component: VendasPage }, { path: 'visao-geral', component: InsightsDashboardPage }, { path: 'dashboard', component: InsightsDashboardPage }, { path: 'dashboard/:carteiraId', component: InsightsDashboardPage }, { path: '', pathMatch: 'full', redirectTo: 'visao-geral' }

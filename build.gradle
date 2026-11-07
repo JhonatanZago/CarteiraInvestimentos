@@ -1,7 +1,12 @@
+import com.github.spotbugs.snom.Confidence
+import com.github.spotbugs.snom.Effort
+
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '4.0.8'
+    id 'org.springframework.boot' version '4.0.9'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'com.github.spotbugs' version '6.5.13'
+    id 'org.cyclonedx.bom' version '3.5.1'
 }
 
 group = 'com.example'
@@ -35,6 +40,44 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
+    spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0'
+
+}
+
+spotbugs {
+    toolVersion = '4.10.5'
+    ignoreFailures = false
+    showStackTraces = true
+    showProgress = true
+    effort = Effort.valueOf('MAX')
+    reportLevel = Confidence.valueOf('MEDIUM')
+    includeFilter = file('config/spotbugs/security-filter.xml')
+    excludeFilter = file('config/spotbugs/security-exclude.xml')
+    omitVisitors = ['CorsRegistryCORSDetector']
+    reportsDir = file("$buildDir/reports/spotbugs")
+}
+
+tasks.named('spotbugsMain') {
+    reports {
+        html {
+            required = true
+            outputLocation = file("$buildDir/reports/spotbugs/main/spotbugs.html")
+        }
+        xml {
+            required = true
+            outputLocation = file("$buildDir/reports/spotbugs/main/spotbugs.xml")
+        }
+    }
+}
+
+tasks.named('cyclonedxDirectBom') {
+    includeConfigs = ['compileClasspath', 'runtimeClasspath']
+    skipConfigs = ['(?i).*test.*']
+}
+
+tasks.named('cyclonedxBom') {
+    projectType = 'application'
+    jsonOutput = layout.projectDirectory.file('security/reports/sbom-backend.json')
 }
 
 tasks.named('test') {

@@ -41,6 +41,7 @@ out/
 
 # Environment variables
 .env
+.tools/osv-scanner/
 .env.local
 
 # Agentes
@@ -53,5 +54,22 @@ frontend/dist/
 frontend/.angular/
 
 BRAPI_BASE_URL=https://brapi.dev
-  BRAPI_TOKEN=bV7bUxQgP9kPuAbDkS8eUV
 
+
+# Gradle
+.gradle/
+.gradle-user-home-validation/
+build/
+**/build/
+
+# Node / Angular
+**/node_modules/
+**/dist/
+.angular/
+
+# Logs
+*.log
+
+# Arquivos locais e sensíveis
+.env.*
+!.env.example

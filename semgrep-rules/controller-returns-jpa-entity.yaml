@@ -1,0 +1,19 @@
+rules:
+  - id: controller-returns-jpa-entity
+    languages: [java]
+    severity: WARNING
+    message: >-
+      Controller retorna entidade JPA diretamente. Use um DTO para evitar exposição
+      de campos internos, relacionamentos e acoplamento ao schema persistido.
+    metadata:
+      cwe: "CWE-200"
+      category: security
+      technology: [spring]
+    patterns:
+      - pattern-inside: |
+          @RestController
+          class $CONTROLLER { ... }
+      - pattern: $RETURN $METHOD(...) { ... }
+      - metavariable-regex:
+          metavariable: $RETURN
+          regex: '^(?:List<|Optional<|ResponseEntity<)?(?:Usuario|RefreshToken|PasswordResetToken|PortfolioSnapshot|MovimentacaoFinanceira|HistoricoCotacao|Corretora|Carteira|AtivoCarteira|Acao|Venda)>?$'

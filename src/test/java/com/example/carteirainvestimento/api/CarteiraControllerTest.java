@@ -85,7 +85,7 @@ class CarteiraControllerTest {
     }
 
     @Test
-    void rejeitaDadosInvalidosEPosicaoDuplicada() throws Exception {
+    void rejeitaDadosInvalidosEConsolidaComprasRepetidas() throws Exception {
         long carteiraId = criarCarteira("Regras");
         Acao acao = criarAcao();
         Corretora corretora = criarCorretora();
@@ -99,9 +99,16 @@ class CarteiraControllerTest {
         criarPosicao(carteiraId, acao.getId(), corretora.getId());
         mockMvc.perform(post("/api/v1/carteiras/{id}/posicoes", carteiraId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(posicaoJson(acao.getId(), corretora.getId(), "10", "25.00")))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("DUPLICATE_RESOURCE"));
+                        .content(posicaoJson(acao.getId(), corretora.getId(), "10", "15.00")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.quantidade").value(20.0))
+                .andExpect(jsonPath("$.precoMedio").value(20.0));
+
+        mockMvc.perform(get("/api/v1/carteiras/{id}/posicoes", carteiraId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].quantidade").value(20.0))
+                .andExpect(jsonPath("$[0].precoMedio").value(20.0));
     }
 
     @Test

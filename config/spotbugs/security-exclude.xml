@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!--
+      Deliberate, narrowly scoped exception. The application authorizes all
+      financial mutations with a bearer access token in Authorization; the
+      refresh cookie is not accepted as authorization for financial endpoints.
+      This boundary is documented in threat-model.md and covered by
+      SecurityRegressionTest.cookieAloneCannotMutateFinancialResource.
+      Revisit if any state-changing endpoint becomes cookie-authorized.
+    -->
+    <Match>
+        <Bug pattern="SPRING_CSRF_PROTECTION_DISABLED" />
+    </Match>
+</FindBugsFilter>
