@@ -23,6 +23,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Configuration
@@ -68,7 +69,21 @@ public class SecurityConfig {
                     } else {
                         f.deny();
                     }
-                }))
+                })
+                        .addHeaderWriter(new StaticHeadersWriter(
+                                "Content-Security-Policy",
+                                "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+                                        + "style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; "
+                                        + "frame-ancestors 'none'; form-action 'self'"))
+                        .addHeaderWriter(new StaticHeadersWriter(
+                                "Permissions-Policy",
+                                "camera=(), microphone=(), geolocation=(), payment=()"))
+                        .addHeaderWriter(new StaticHeadersWriter(
+                                "Cross-Origin-Opener-Policy", "same-origin"))
+                        .addHeaderWriter(new StaticHeadersWriter(
+                                "Cross-Origin-Embedder-Policy", "unsafe-none"))
+                        .addHeaderWriter(new StaticHeadersWriter(
+                                "Cross-Origin-Resource-Policy", "same-site")))
                 .addFilterBefore(new AccessTokenFilter(tokens, auth), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

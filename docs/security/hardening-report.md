@@ -342,3 +342,41 @@ RegressÃ£o apÃ³s a correÃ§Ã£o:
 - RegeraÃ§Ã£o dos dois SBOMs e OSV-Scanner: APROVADA, 0 resultados em ambos.
 
 O Security Gate permanece `REPROVADO` fail-closed somente pelos escopos Gitleaks, pois o Docker Engine continua indisponÃ­vel. Semgrep passou com 0 achados, OSV passou nos dois escopos e SpotBugs/FindSecBugs passou com 0 achados. A credencial BRAPI histÃ³rica continua risco aberto e sem revogaÃ§Ã£o confirmada.
+## Preparação DAST OWASP ZAP — 2026-11-07
+
+O tutorial local `tutorial/modulo-11-seguranca.md` continua ausente. A preparação segue o Baseline Scan oficial do ZAP, que realiza spider limitado e análise passiva, sem ataques ativos. Foi criado `scripts/run-zap-baseline.ps1` com imagem oficial versionada `ghcr.io/zaproxy/zaproxy:2.17.0`, relatórios HTML/JSON/XML em `security/reports/` e alvo padrão `http://host.docker.internal:8081/swagger-ui/index.html`.
+
+O runner aceita somente HTTP para `localhost`, `127.0.0.1`, `host.docker.internal` ou loopback IPv6. Não aceita credenciais na URL, domínios externos ou produção. O processo não usa BRAPI nem outros serviços externos como alvo.
+
+Resultado do ambiente: Docker CLI `29.7.2` está instalado, porém `docker version`/`docker info` não conseguem conectar ao named pipe `docker_engine`; o Docker Engine/Desktop está indisponível. Não havia processo escutando na porta local `8081`. A execução do runner foi interrompida fail-closed com `Docker Engine is unavailable; ZAP Baseline was not executed.`
+
+Portanto, nesta validação: DAST **NÃO EXECUTADO**, sem relatórios ZAP, sem alertas classificados e sem alegação de cobertura. Para executar posteriormente, iniciar o Docker Desktop, iniciar o backend isolado com H2/test data e credenciais exclusivamente de teste, confirmar `docker info` e então executar o runner. O token BRAPI histórico continua risco aberto, sem revogação confirmada.
+## OWASP ZAP / DAST executado em 2026-11-07
+
+O Docker Desktop ficou operacional com permissÃ£o elevada: Docker `29.7.2`, Docker Desktop `4.88.1`. O backend foi iniciado somente para o DAST com Java 21, Spring profile `dev`, H2 em memÃ³ria `jdbc:h2:mem:dast`, `JPA_DDL_AUTO=create-drop`, `H2_CONSOLE_ENABLED=false`, segredo JWT temporÃ¡rio exclusivo da execuÃ§Ã£o e integraÃ§Ãµes externas sem URLs/chaves. O processo foi encerrado apÃ³s o scan.
+
+Comando executado:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-zap-baseline.ps1
+```
+
+Imagem: `ghcr.io/zaproxy/zaproxy:2.17.0`. Alvo Ãºnico: `http://host.docker.internal:8081/swagger-ui/index.html`. O container confirmou conectividade e cobriu 13 URLs, todas locais. RelatÃ³rios sanitizados: `security/reports/zap-baseline.html`, `zap-baseline.json` e `zap-baseline.xml`.
+
+Resultado inicial: 7 categorias WARN-NEW, 0 FAIL, 61 PASS. ApÃ³s a correÃ§Ã£o de headers defensivos no `SecurityConfig`, o resultado foi 6 categorias WARN-NEW, 0 FAIL, 62 PASS. O exit code `2` do ZAP representa alertas WARN; nÃ£o foi tratado como falha de infraestrutura.
+
+Triagem:
+
+| Alerta | Severidade | SituaÃ§Ã£o |
+|---|---|---|
+| Vulnerable JS Library — DOMPurify `3.2.6` no Swagger UI | High, confianÃ§a Medium | Risco residual; o webjar atual `swagger-ui:5.30.1` Ã© transitivo do SpringDoc. A atualizaÃ§Ã£o proposta para `5.34.1` nÃ£o foi aplicada porque o Gradle nÃ£o conseguiu resolver Maven Central por erro TLS/rede. |
+| CSP: `frame-ancestors`/`form-action` sem fallback e `unsafe-inline` | Medium, confianÃ§a High | Header CSP adicionado; os avisos restantes refletem compatibilidade necessÃ¡ria do Swagger UI e exigem uma polÃ­tica com nonce/hash para eliminaÃ§Ã£o completa. |
+| Cross-Origin-Embedder/Resource-Policy | Low | Headers defensivos adicionados; o ZAP ainda reporta incompatibilidade em recursos Swagger. Não foi aplicado `require-corp` para não arriscar quebrar recursos/API cross-origin. |
+| Timestamp Disclosure — Unix | Low | Evidência em JavaScript estático do Swagger UI; sem dados financeiros ou segredo. |
+| Non-Storable Content | Informational | `no-store` em respostas 401 e recursos locais; comportamento conservador para conteúdo potencialmente sensível. |
+| Modern Web Application | Informational | Caracterização do Swagger UI, sem correção necessária. |
+
+As correções de headers não alteraram autenticação, contratos REST, migrations ou regras financeiras. Regressão após a correção: `clean test`, `build` e `spotbugsMain` aprovados; `npm run build` aprovado; 63 testes frontend aprovados.
+
+O Security Gate foi executado explicitamente com `-RunZap`: Semgrep 0, Gitleaks nos nove escopos sem leaks, OSV backend/frontend sem vulnerabilidades, SpotBugs/FindSecBugs 0 achados e ZAP 0 FAIL/6 WARN; resultado final `REPROVADO` por `zap:alerts`. O gate padrão não executa ZAP automaticamente e informa `DAST: NÃO EXECUTADO` quando `-RunZap` não é fornecido. O token BRAPI histórico continua risco aberto, sem revogação confirmada.
+ReexecuÃ§Ã£o final apÃ³s explicitar `frame-ancestors 'none'` e `form-action 'self'`: 13 URLs, 0 FAIL, 6 categorias WARN-NEW e 62 PASS. O alerta CSP de diretivas sem fallback foi eliminado; permanecem `unsafe-inline` exigido pelo Swagger UI, DOMPurify 3.2.6, polÃ­ticas COEP/CORP, timestamps e itens informativos.

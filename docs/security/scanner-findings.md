@@ -191,3 +191,27 @@ Comparativo real: backend passou de 18 ocorrÃªncias/11 IDs para zero; frontend
 `npm ci` foi executado normalmente apÃ³s a regeneraÃ§Ã£o limpa do lockfile e passou. Uma tentativa intermediÃ¡ria de resolver o lockfile com `--legacy-peer-deps` foi usada apenas para diagnosticar/regenerar a Ã¡rvore; nÃ£o foi usado `--force` nem `npm audit fix`. O lockfile final foi validado por `npm ci` normal.
 
 O gate final executou Semgrep, CycloneDX, OSV e SpotBugs/FindSecBugs com sucesso. Gitleaks permanece nÃ£o verificÃ¡vel porque o Docker Engine nÃ£o estava disponÃ­vel; o gate corretamente terminou reprovado. O token BRAPI antigo continua exposto no histÃ³rico Git, sem revogaÃ§Ã£o confirmada.
+## OWASP ZAP / DAST — preparação em 2026-11-07
+
+Foi criado `scripts/run-zap-baseline.ps1` para usar `ghcr.io/zaproxy/zaproxy:2.17.0` contra um alvo local explícito. O alvo padrão é `http://host.docker.internal:8081/swagger-ui/index.html`, adequado ao Docker Desktop no Windows quando o backend estiver escutando em `8081`. O script gera `zap-baseline.html`, `zap-baseline.json` e `zap-baseline.xml` em `security/reports/` e rejeita hosts externos, URLs com credenciais e esquemas diferentes de HTTP.
+
+O Baseline Scan não foi executado: o Docker Engine falhou no named pipe `docker_engine` e não havia backend escutando na porta `8081`. Não existem alertas ZAP nesta execução. O estado correto é **DAST não executado por falha de infraestrutura**, não “0 alertas”.
+
+Escopo planejado, quando o ambiente estiver disponível: Swagger/OpenAPI e endpoints locais de autenticação, respostas HTTP, cabeçalhos, CORS e exposição de informações, usando H2/test profile isolado, dados fictícios e sem chamadas a integrações externas. Não serão usados tokens JWT reais ou o segredo BRAPI.
+## OWASP ZAP / DAST — resultado e triagem em 2026-11-07
+
+Ambiente: Docker Desktop `4.88.1` / Engine `29.7.2`; backend Spring Boot `4.0.9`, Java 21, H2 em memÃ³ria e profile `dev`. O alvo foi exclusivamente `http://host.docker.internal:8081/swagger-ui/index.html`; nenhum domÃ­nio externo, produÃ§Ã£o, dado real ou credencial real foi usado. O Baseline Scan `ghcr.io/zaproxy/zaproxy:2.17.0` cobriu 13 URLs e produziu HTML, JSON e XML.
+
+| Categoria | Severidade | EvidÃªncia | AvaliaÃ§Ã£o |
+|---|---|---|---|
+| `10003 Vulnerable JS Library` | High / Medium confidence | DOMPurify `3.2.6` em `/swagger-ui/swagger-ui-bundle.js`; ZAP listou CVEs/GHSAs no JSON | Achado de dependÃªncia do Swagger UI transitivo; nÃ£o Ã© evidÃªncia de exploraÃ§Ã£o dos endpoints financeiros. AtualizaÃ§Ã£o `swagger-ui 5.34.1` ficou pendente por falha de resoluÃ§Ã£o Gradle/Maven Central. |
+| `10055 CSP` | Medium / High confidence | `frame-ancestors`/`form-action` sem fallback e `unsafe-inline` | CSP foi adicionado. `unsafe-inline` permanece por compatibilidade com Swagger UI; remoÃ§Ã£o exige nonce/hash e validaÃ§Ã£o adicional. |
+| `90004 COEP/CORP` | Low / Medium confidence | Recursos Swagger sem polÃ­tica aceita pelo detector | Headers COOP/COEP/CORP foram adicionados, mas o detector ainda reporta parte dos recursos; `require-corp` nÃ£o foi aplicado para preservar compatibilidade cross-origin. |
+| `10096 Timestamp Disclosure` | Low / Low confidence | Timestamps em `swagger-ui-standalone-preset.js` | Falso positivo/baixo impacto em biblioteca estÃ¡tica; sem informaÃ§Ã£o sensÃ­vel do projeto. |
+| `10049 Non-Storable Content` | Informational | `Cache-Control: no-store` em respostas 401 e recursos Swagger | Controle conservador, nÃ£o vulnerabilidade. |
+| `10109 Modern Web Application` | Informational | Swagger UI | Informativo. |
+
+Antes dos headers: 7 categorias WARN-NEW, 0 FAIL, 61 PASS. Depois: 6 categorias WARN-NEW, 0 FAIL, 62 PASS. O DAST foi executado de fato; portanto nÃ£o deve ser registrado como “0 alertas”.
+
+O gate explÃ­cito `scripts/security-gate.ps1 -RunZap` confirmou Semgrep 0, Gitleaks atual sem leaks nos escopos, OSV 0, SpotBugs/FindSecBugs 0 e ZAP com WARNs. O resultado foi `REPROVADO` por `zap:alerts`, sem supressÃ£o genÃ©rica. O token BRAPI histÃ³rico continua pendente e sem revogaÃ§Ã£o confirmada.
+Na reexecuÃ§Ã£o final, apÃ³s `frame-ancestors` e `form-action` serem explicitados, o alerta CSP de fallback desapareceu. Permaneceram 6 categorias WARN-NEW, 0 FAIL e 62 PASS; o CSP restante Ã© exclusivamente `unsafe-inline` para script/style do Swagger UI.

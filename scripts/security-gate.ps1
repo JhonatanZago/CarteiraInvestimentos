@@ -1,6 +1,7 @@
 param(
     [string]$SemgrepVersion = '1.178.0',
-    [string]$GitleaksImage = 'zricethezav/gitleaks:v8.30.1'
+    [string]$GitleaksImage = 'zricethezav/gitleaks:v8.30.1',
+    [switch]$RunZap
 )
 
 $ErrorActionPreference = 'Stop'
@@ -14,14 +15,14 @@ if ([string]::IsNullOrWhiteSpace($osvScannerPath)) {
     $osvScannerPath = Join-Path $repo '.tools/osv-scanner/v2.7.0/osv-scanner.exe'
 }
 
-Write-Host '== 1/5 SAST: Semgrep =='
+Write-Host '== 1/6 SAST: Semgrep =='
 & uvx "semgrep==$SemgrepVersion" scan --metrics=off `
     --config p/java --config p/secrets --config p/owasp-top-ten `
     --config semgrep-rules/ --error --sarif `
     --output (Join-Path $reportDir 'semgrep.sarif') src/ frontend/src/
 if ($LASTEXITCODE -ne 0) { $failures.Add('semgrep') }
 
-Write-Host '== 2/5 Segredos: Gitleaks =='
+Write-Host '== 2/6 Segredos: Gitleaks =='
 $targets = @(
     @{ Path = 'src'; Name = 'src' },
     @{ Path = 'frontend/src'; Name = 'frontend-src' },
@@ -40,13 +41,13 @@ foreach ($target in $targets) {
     if ($LASTEXITCODE -ne 0) { $failures.Add("gitleaks:$($target.Name)") }
 }
 
-Write-Host '== 3/5 SBOM: CycloneDX backend + frontend =='
+Write-Host '== 3/6 SBOM: CycloneDX backend + frontend =='
 & .\gradlew.bat cyclonedxBom --console=plain
 if ($LASTEXITCODE -ne 0) { $failures.Add('cyclonedx-backend') }
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\generate-frontend-sbom.ps1
 if ($LASTEXITCODE -ne 0) { $failures.Add('cyclonedx-frontend') }
 
-Write-Host '== 4/5 SCA: OSV-Scanner =='
+Write-Host '== 4/6 SCA: OSV-Scanner =='
 $sbomInputs = @('security/reports/sbom-backend.json', 'security/reports/sbom-frontend.json')
 foreach ($sbom in $sbomInputs) {
     try {
@@ -76,9 +77,19 @@ if (Test-Path -LiteralPath $osvScannerPath) {
     }
 }
 
-Write-Host '== 5/5 Bytecode: SpotBugs + FindSecBugs =='
+Write-Host '== 5/6 Bytecode: SpotBugs + FindSecBugs =='
 & .\gradlew.bat spotbugsMain --console=plain
 if ($LASTEXITCODE -ne 0) { $failures.Add('spotbugs') }
+
+Write-Host '== 6/6 DAST: OWASP ZAP Baseline =='
+if ($RunZap) {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-zap-baseline.ps1
+    if ($LASTEXITCODE -eq 2) { $failures.Add('zap:alerts') }
+    elseif ($LASTEXITCODE -gt 2) { $failures.Add('zap:execution') }
+}
+else {
+    Write-Warning 'DAST: NAO EXECUTADO. Use -RunZap somente com backend local isolado e alvo autorizado.'
+}
 
 if ($failures.Count -gt 0) {
     Write-Error "REPROVADO: $($failures -join ', '). Consulte security/reports/."

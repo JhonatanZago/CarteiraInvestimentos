@@ -58,4 +58,10 @@
 ## Workflow follow-up
 
 - Archive this change only after review and explicit confirmation that the phase implementation is accepted.
-- Keep SBOM/OSV, ZAP, and the remaining credential triage as pending follow-up; keep Modules 12/13 out of this change.
+- Keep the remaining credential triage and the unexecuted ZAP baseline follow-up pending; keep Modules 12/13 out of this change.
+
+## 9. Dynamic analysis — Command 14
+
+- [x] 9.1 Prepare a versioned OWASP ZAP Baseline runner restricted to local HTTP targets and isolated report paths; verify fail-closed behavior when Docker is unavailable.
+- [x] 9.2 Execute the Baseline Scan against the isolated local backend and preserve HTML/JSON/XML evidence after Docker became available; 13 local URLs covered, 0 FAIL, WARNs retained.
+- [x] 9.3 Triage ZAP alerts, apply only safe corrections, rerun backend/frontend regression, and document residual risk; Swagger UI DOMPurify remains pending due Maven resolution failure.
