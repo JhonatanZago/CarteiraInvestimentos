@@ -74,3 +74,6 @@ build/
 # Arquivos locais e sensíveis
 .env.*
 !.env.example
+
+# Relatórios da validação local de CI/CD
+.ci-local-reports/
