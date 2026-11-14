@@ -20,9 +20,9 @@
 
 - [ ] 4.1 Add the strict OpenSpec validation job using the decision from 1.1; verify invalid change artifacts fail the check and valid artifacts produce retained output.
 - [x] 4.2 Set pull-request and protected-branch triggers, per-ref concurrency cancellation, job timeouts, and `contents: read` permissions; verify the workflow contains no deploy job or write-capable token.
-- [ ] 4.3 Verify the workflow supplies no real `BRAPI_TOKEN`, JWT secret, refresh token, ZAP approval, or other production credential; verify logs and artifacts do not print environment secrets and isolated tests remain runnable without BRAPI.
+- [x] 4.3 Verify the workflow supplies no real `BRAPI_TOKEN`, JWT secret, refresh token, ZAP approval, or other production credential; verify logs and artifacts do not print environment secrets and isolated tests remain runnable without BRAPI.
 
 ## 5. Integration verification and documentation
 
 - [ ] 5.1 Run the new workflow on a validation pull request and inspect all job statuses, skipped-test counts, cache behavior, and artifacts; verify backend failures, frontend failures, SpotBugs findings, and OpenSpec errors block the run.
-- [ ] 5.2 Document the required branch-protection check names, ignored-test policy, report locations, cache policy, and no-deploy boundary; verify the documentation matches the committed workflow and does not alter Module 11 or task 6.4.
+- [x] 5.2 Document the required branch-protection check names, ignored-test policy, report locations, cache policy, and no-deploy boundary; verify the documentation matches the committed workflow and does not alter Module 11 or task 6.4.
