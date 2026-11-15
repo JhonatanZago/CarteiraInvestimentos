@@ -44,8 +44,10 @@ class SecurityCoverageTest {
     @Test
     void rejectsTamperedSignatureWithoutEchoingCredential() throws Exception {
         String token = tokens.accessToken(999L, 60);
-        String tampered = token.substring(0, token.length() - 1)
-                + (token.endsWith("A") ? "B" : "A");
+        String[] tokenParts = token.split("\\.");
+        String signature = tokenParts[2];
+        String tamperedSignature = (signature.charAt(0) == 'A' ? "B" : "A") + signature.substring(1);
+        String tampered = tokenParts[0] + "." + tokenParts[1] + "." + tamperedSignature;
 
         mockMvc.perform(get("/api/v1/carteiras")
                         .header("Authorization", "Bearer " + tampered))

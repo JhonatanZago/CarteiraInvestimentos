@@ -64,8 +64,10 @@ class JwtContextSecurityTest {
         register(email);
         LoginData login = login(email);
         String valid = login.accessToken();
-        String tampered = valid.substring(0, valid.length() - 1)
-                + (valid.endsWith("A") ? "B" : "A");
+        String[] tokenParts = valid.split("\\.");
+        String signature = tokenParts[2];
+        String tamperedSignature = (signature.charAt(0) == 'A' ? "B" : "A") + signature.substring(1);
+        String tampered = tokenParts[0] + "." + tokenParts[1] + "." + tamperedSignature;
 
         assertUnauthorized(null);
         assertUnauthorized("");
@@ -126,6 +128,22 @@ class JwtContextSecurityTest {
         mockMvc.perform(get("/api/v1/auth/me").header("Authorization", credential))
                 .andExpect(status().isUnauthorized())
                 .andExpect(result -> assertTrue(!result.getResponse().getContentAsString().contains(credential)));
+    }
+
+    @Test
+    void mapsPersistedAdminProfileToAdminRoleWithoutGrantingCrossOwnerAccess() throws Exception {
+        String email = uniqueEmail("admin");
+        register(email);
+        Usuario admin = usuarios.findByEmailIgnoreCase(email).orElseThrow();
+        admin.setPerfil(com.example.carteirainvestimento.enums.PerfilUsuario.ADMIN);
+        usuarios.saveAndFlush(admin);
+
+        LoginData login = login(email);
+        JsonNode me = objectMapper.readTree(mockMvc.perform(get("/api/v1/auth/me")
+                        .header("Authorization", "Bearer " + login.accessToken()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+
+        assertEquals("ADMIN", me.get("perfil").asText());
     }
 
     private Callable<MvcResult> requestFor(CyclicBarrier start, String token) {

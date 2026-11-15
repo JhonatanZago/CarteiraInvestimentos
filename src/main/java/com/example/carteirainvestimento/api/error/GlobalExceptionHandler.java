@@ -15,9 +15,24 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
+    ResponseEntity<ApiError> handleMissingAuthentication(AuthenticationCredentialsNotFoundException exception,
+                                                         HttpServletRequest request) {
+        return response(HttpStatus.UNAUTHORIZED, ErrorCode.BUSINESS_RULE_VIOLATION,
+                "Authentication required", request, List.of());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException exception, HttpServletRequest request) {
+        return response(HttpStatus.FORBIDDEN, ErrorCode.BUSINESS_RULE_VIOLATION,
+                "Access denied", request, List.of());
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException exception, HttpServletRequest request) {
