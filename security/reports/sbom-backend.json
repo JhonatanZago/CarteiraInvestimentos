@@ -1,10 +1,10 @@
 {
   "bomFormat" : "CycloneDX",
   "specVersion" : "1.6",
-  "serialNumber" : "urn:uuid:ac1affc3-f3cc-4bdf-8323-2078cc2fe1f0",
+  "serialNumber" : "urn:uuid:e4e4b44f-03d8-4e4a-bd99-8b6b8ef13008",
   "version" : 1,
   "metadata" : {
-    "timestamp" : "2026-11-15T17:02:43Z",
+    "timestamp" : "2026-11-15T17:12:04Z",
     "tools" : {
       "components" : [
         {
@@ -750,6 +750,78 @@
         {
           "type" : "vcs",
           "url" : "https://github.com/h2database/h2database"
+        }
+      ],
+      "properties" : [
+        {
+          "name" : "cdx:maven:package:test",
+          "value" : "false"
+        }
+      ]
+    },
+    {
+      "type" : "library",
+      "bom-ref" : "pkg:maven/com.nimbusds/nimbus-jose-jwt@10.4?type=jar",
+      "publisher" : "Connect2id Ltd.",
+      "group" : "com.nimbusds",
+      "name" : "nimbus-jose-jwt",
+      "version" : "10.4",
+      "description" : "Java library for Javascript Object Signing and Encryption (JOSE) and JSON Web Tokens (JWT)",
+      "hashes" : [
+        {
+          "alg" : "MD5",
+          "content" : "814c1bcc5ce8be81124064581de6ae11"
+        },
+        {
+          "alg" : "SHA-1",
+          "content" : "0ca983d3f13080567e36ea554a15af38f31a0cb4"
+        },
+        {
+          "alg" : "SHA-256",
+          "content" : "6f13f3480ddc53d820d276f582f54843cff1daf5c6e35e534947e9de7723b46b"
+        },
+        {
+          "alg" : "SHA-512",
+          "content" : "2c210161826b6393d3b88e018e3bf767a68025f82f068f39176e6ef8a564068ea0bab5d00ab122a720e4848b9bd3c8dd51ae6dcfe96fc1e2686122e97c12ff84"
+        },
+        {
+          "alg" : "SHA3-256",
+          "content" : "681e240e663ae76955b1c82cc2b19c8d7abaec4e6c4b25044df269e24ebf3099"
+        },
+        {
+          "alg" : "SHA3-512",
+          "content" : "206a89b58a070074cc34a2767591dacda11ed82431b89e87ef4c5b88487970dba7e368962b9a62a580147ad6f554d1c94a676678e0944a10c7d1a023f3785418"
+        },
+        {
+          "alg" : "SHA-384",
+          "content" : "184ea0532d4062d5b7a08d682e4789d0bf0c4499912432c07c2529907e42a127a8d6cea3389a867c057172192f21a359"
+        },
+        {
+          "alg" : "SHA3-384",
+          "content" : "6feef75df7a8caf639a76ddbcc5ab72e722f4e9cebf1c82ff1ba0113553e90e8df0da22576a859ef7a4be825912f8a6c"
+        }
+      ],
+      "licenses" : [
+        {
+          "license" : {
+            "id" : "Apache-2.0"
+          }
+        }
+      ],
+      "purl" : "pkg:maven/com.nimbusds/nimbus-jose-jwt@10.4?type=jar",
+      "modified" : false,
+      "externalReferences" : [
+        {
+          "type" : "website",
+          "url" : "https://connect2id.com"
+        },
+        {
+          "type" : "distribution",
+          "url" : "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+        },
+        {
+          "type" : "vcs",
+          "url" : "https://bitbucket.org/connect2id/nimbus-jose-jwt"
         }
       ],
       "properties" : [
@@ -6020,6 +6092,150 @@
     },
     {
       "type" : "library",
+      "bom-ref" : "pkg:maven/org.springframework.security/spring-security-oauth2-core@7.0.8?type=jar",
+      "publisher" : "Pivotal Software, Inc.",
+      "group" : "org.springframework.security",
+      "name" : "spring-security-oauth2-core",
+      "version" : "7.0.8",
+      "description" : "Spring Security",
+      "hashes" : [
+        {
+          "alg" : "MD5",
+          "content" : "d69888ac374345400e578cae14544a80"
+        },
+        {
+          "alg" : "SHA-1",
+          "content" : "e84cbadec54e362e60589d253684ca0873940ef3"
+        },
+        {
+          "alg" : "SHA-256",
+          "content" : "12b5a1f09f8ee158e55a4bc76f3461adf7dd46377caa7ced901a8b9514b88e1d"
+        },
+        {
+          "alg" : "SHA-512",
+          "content" : "66ef024fe3e07422f04e3e088734d239140a33b195e299feaead99d8430df3588b0d1a7ba2926eea0f5c0dc7492f234c518622ccace6f4f47d61bd0bfa7de198"
+        },
+        {
+          "alg" : "SHA3-256",
+          "content" : "b7c38c363a40e16ebb0d5aaa4a5e4c2eeec9c1e45025211a6729bbf34ba840af"
+        },
+        {
+          "alg" : "SHA3-512",
+          "content" : "e04fc2698538b2723ee2cff0917abc61470118c4f42ab0a61b93849ad216fdab56adc3f500f4d8cc30713fa2421aaec00c9b0780db8dae0974e0371e9fdfe590"
+        },
+        {
+          "alg" : "SHA-384",
+          "content" : "ce43f8dcb97e272da19d2558c8cbb8e21dceadd951cfc0d4f145aad4b8db8d99a2dbdce616bdf6c04ae493a789668673"
+        },
+        {
+          "alg" : "SHA3-384",
+          "content" : "ae7bcbb4e3b708d30fece931fce113f42593e162ce384bbdf1d6cc9c4223c73d722616dcf7d366d36d1e59b56eac0354"
+        }
+      ],
+      "licenses" : [
+        {
+          "license" : {
+            "id" : "Apache-2.0"
+          }
+        }
+      ],
+      "purl" : "pkg:maven/org.springframework.security/spring-security-oauth2-core@7.0.8?type=jar",
+      "modified" : false,
+      "externalReferences" : [
+        {
+          "type" : "website",
+          "url" : "https://spring.io"
+        },
+        {
+          "type" : "issue-tracker",
+          "url" : "https://github.com/spring-projects/spring-security/issues"
+        },
+        {
+          "type" : "vcs",
+          "url" : "https://github.com/spring-projects/spring-security"
+        }
+      ],
+      "properties" : [
+        {
+          "name" : "cdx:maven:package:test",
+          "value" : "false"
+        }
+      ]
+    },
+    {
+      "type" : "library",
+      "bom-ref" : "pkg:maven/org.springframework.security/spring-security-oauth2-jose@7.0.8?type=jar",
+      "publisher" : "Pivotal Software, Inc.",
+      "group" : "org.springframework.security",
+      "name" : "spring-security-oauth2-jose",
+      "version" : "7.0.8",
+      "description" : "Spring Security",
+      "hashes" : [
+        {
+          "alg" : "MD5",
+          "content" : "183fb58506d74b70aedb6c5e86de480f"
+        },
+        {
+          "alg" : "SHA-1",
+          "content" : "aa83e3316276d163ff0dda2fdfe0989ba70f4ad2"
+        },
+        {
+          "alg" : "SHA-256",
+          "content" : "feade9b43dc21fb794a1e9bd1f846e91f2f185caabf5a56ed7534d0450793316"
+        },
+        {
+          "alg" : "SHA-512",
+          "content" : "677cf66783ce6f18a6f1d3d78e5472f613b12c5987d7fef320708bef0e6bebfedee2f5581f9c2f7a0d96c77d020dfc005c7aaa2e50a6f490c7307066f9172338"
+        },
+        {
+          "alg" : "SHA3-256",
+          "content" : "358b250a61b854b4cd1bbc6bad9e9e6729928ebd0b927f2446e36f29852b7c6f"
+        },
+        {
+          "alg" : "SHA3-512",
+          "content" : "1dd0f98dc6535f4146773fa1442811fc420ee016e44165d7c39304bd267aa2a67255a7ed24de786cacecc628fd170df5fcdec1a3706c9ffbd2b3e17f319b2949"
+        },
+        {
+          "alg" : "SHA-384",
+          "content" : "c521158c9a7e2baf912b76b792ebfd1d92013658c67b8381414c53b36e934579347368086aa53490153185636109c751"
+        },
+        {
+          "alg" : "SHA3-384",
+          "content" : "9ed4b8e26787cd4da01eb5917d910d0d11f454a1f143e3c5b7d1d3329827d2b144cb12175607c1b106909aa2024596b7"
+        }
+      ],
+      "licenses" : [
+        {
+          "license" : {
+            "id" : "Apache-2.0"
+          }
+        }
+      ],
+      "purl" : "pkg:maven/org.springframework.security/spring-security-oauth2-jose@7.0.8?type=jar",
+      "modified" : false,
+      "externalReferences" : [
+        {
+          "type" : "website",
+          "url" : "https://spring.io"
+        },
+        {
+          "type" : "issue-tracker",
+          "url" : "https://github.com/spring-projects/spring-security/issues"
+        },
+        {
+          "type" : "vcs",
+          "url" : "https://github.com/spring-projects/spring-security"
+        }
+      ],
+      "properties" : [
+        {
+          "name" : "cdx:maven:package:test",
+          "value" : "false"
+        }
+      ]
+    },
+    {
+      "type" : "library",
       "bom-ref" : "pkg:maven/org.springframework.security/spring-security-web@7.0.8?type=jar",
       "publisher" : "Pivotal Software, Inc.",
       "group" : "org.springframework.security",
@@ -7285,6 +7501,7 @@
         "pkg:maven/org.springframework.boot/spring-boot-starter-security@4.0.9?type=jar",
         "pkg:maven/org.springframework.boot/spring-boot-starter-validation@4.0.9?type=jar",
         "pkg:maven/org.springframework.boot/spring-boot-starter-webmvc@4.0.9?type=jar",
+        "pkg:maven/org.springframework.security/spring-security-oauth2-jose@7.0.8?type=jar",
         "pkg:maven/org.webjars/swagger-ui@5.34.1?type=jar"
       ]
     },
@@ -7338,6 +7555,10 @@
     },
     {
       "ref" : "pkg:maven/com.h2database/h2@2.4.240?type=jar",
+      "dependsOn" : [ ]
+    },
+    {
+      "ref" : "pkg:maven/com.nimbusds/nimbus-jose-jwt@10.4?type=jar",
       "dependsOn" : [ ]
     },
     {
@@ -7883,6 +8104,23 @@
     {
       "ref" : "pkg:maven/org.springframework.security/spring-security-crypto@7.0.8?type=jar",
       "dependsOn" : [ ]
+    },
+    {
+      "ref" : "pkg:maven/org.springframework.security/spring-security-oauth2-core@7.0.8?type=jar",
+      "dependsOn" : [
+        "pkg:maven/org.springframework.security/spring-security-core@7.0.8?type=jar",
+        "pkg:maven/org.springframework/spring-core@7.0.10?type=jar",
+        "pkg:maven/org.springframework/spring-web@7.0.10?type=jar"
+      ]
+    },
+    {
+      "ref" : "pkg:maven/org.springframework.security/spring-security-oauth2-jose@7.0.8?type=jar",
+      "dependsOn" : [
+        "pkg:maven/com.nimbusds/nimbus-jose-jwt@10.4?type=jar",
+        "pkg:maven/org.springframework.security/spring-security-core@7.0.8?type=jar",
+        "pkg:maven/org.springframework.security/spring-security-oauth2-core@7.0.8?type=jar",
+        "pkg:maven/org.springframework/spring-core@7.0.10?type=jar"
+      ]
     },
     {
       "ref" : "pkg:maven/org.springframework.security/spring-security-web@7.0.8?type=jar",

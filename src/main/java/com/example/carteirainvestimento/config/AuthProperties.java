@@ -2,16 +2,25 @@ package com.example.carteirainvestimento.config;
 
 import java.util.Locale;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.ConstructorBinding;
 
 @ConfigurationProperties(prefix = "app.auth")
 public record AuthProperties(
         String jwtSecret,
+        String jwtIssuer,
         boolean refreshCookieSecure,
         String refreshCookieSameSite,
         String refreshCookiePath) {
 
+    public AuthProperties(String jwtSecret, boolean refreshCookieSecure, String refreshCookieSameSite,
+            String refreshCookiePath) {
+        this(jwtSecret, "carteira-investimento", refreshCookieSecure, refreshCookieSameSite, refreshCookiePath);
+    }
+
+    @ConstructorBinding
     public AuthProperties {
         jwtSecret = jwtSecret == null ? "" : jwtSecret;
+        jwtIssuer = jwtIssuer == null || jwtIssuer.isBlank() ? "carteira-investimento" : jwtIssuer.trim();
         refreshCookieSameSite = refreshCookieSameSite == null
                 ? "Lax"
                 : refreshCookieSameSite.trim();

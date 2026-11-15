@@ -1,21 +1,35 @@
 package com.example.carteirainvestimento.service;
 
+import com.example.carteirainvestimento.config.AuthProperties;
+import com.example.carteirainvestimento.enums.PerfilUsuario;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
-import java.security.SecureRandom;
-import javax.crypto.Mac;
+import java.util.List;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import com.example.carteirainvestimento.config.AuthProperties;
 
 @Service
 public class AuthTokenService {
-    private final byte[] secret;
+    private final JwtEncoder encoder;
+    private final JwtDecoder decoder;
+    private final String issuer;
+
     public AuthTokenService(AuthProperties properties, Environment environment) {
         boolean test = environment.acceptsProfiles(Profiles.of("test"));
         boolean localProfile = environment.acceptsProfiles(Profiles.of("dev", "local", "test"));
@@ -35,31 +49,62 @@ public class AuthTokenService {
         if (!localProfile && !properties.refreshCookieSecure()) {
             throw new IllegalStateException("AUTH_REFRESH_COOKIE_SECURE=true é obrigatório fora dos perfis locais");
         }
-        this.secret = configured.getBytes(StandardCharsets.UTF_8);
+
+        this.issuer = properties.jwtIssuer();
+        SecretKey key = new SecretKeySpec(configured.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        this.encoder = NimbusJwtEncoder.withSecretKey(key).build();
+        NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withSecretKey(key)
+                .macAlgorithm(MacAlgorithm.HS256)
+                .build();
+        jwtDecoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(properties.jwtIssuer()));
+        this.decoder = jwtDecoder;
     }
+
     public String accessToken(Long userId, long ttlSeconds) {
-        long exp = Instant.now().plusSeconds(ttlSeconds).getEpochSecond();
-        String payload = userId + "." + exp;
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(payload.getBytes(StandardCharsets.UTF_8)) + "." + sign(payload);
+        return accessToken(userId, PerfilUsuario.USER, ttlSeconds);
     }
+
+    public String accessToken(Long userId, PerfilUsuario perfil, long ttlSeconds) {
+        Instant issuedAt = ttlSeconds <= 0 ? Instant.now().minusSeconds(121) : Instant.now();
+        Instant expiresAt = ttlSeconds <= 0 ? Instant.now().minusSeconds(120) : issuedAt.plusSeconds(ttlSeconds);
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .subject(String.valueOf(userId))
+                .issuer(currentIssuer())
+                .issuedAt(issuedAt)
+                .expiresAt(expiresAt)
+                .claim("authorities", List.of("ROLE_" + (perfil == null ? PerfilUsuario.USER : perfil).name()))
+                .build();
+        JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).type("JWT").build();
+        return encoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
+    }
+
     public Long userId(String token) {
         try {
-            String[] parts = token.split("\\.", 2);
-            String payload = new String(Base64.getUrlDecoder().decode(parts[0]), StandardCharsets.UTF_8);
-            if (!MessageDigest.isEqual(sign(payload).getBytes(StandardCharsets.UTF_8), parts[1].getBytes(StandardCharsets.UTF_8))) return null;
-            String[] values = payload.split("\\.");
-            if (Long.parseLong(values[1]) <= Instant.now().getEpochSecond()) return null;
-            return Long.valueOf(values[0]);
-        } catch (RuntimeException ex) { return null; }
+            Jwt jwt = decoder.decode(token);
+            return Long.valueOf(jwt.getSubject());
+        } catch (RuntimeException ex) {
+            return null;
+        }
     }
+
     public String hash(String value) {
-        try { return Base64.getUrlEncoder().withoutPadding().encodeToString(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8))); }
-        catch (Exception ex) { throw new IllegalStateException(ex); }
+        try {
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(
+                    java.security.MessageDigest.getInstance("SHA-256")
+                            .digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception ex) {
+            throw new IllegalStateException(ex);
+        }
     }
-    public String randomToken() { return Base64.getUrlEncoder().withoutPadding().encodeToString(java.util.UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)); }
-    private String sign(String value) {
-        try { Mac mac = Mac.getInstance("HmacSHA256"); mac.init(new SecretKeySpec(secret, "HmacSHA256")); return Base64.getUrlEncoder().withoutPadding().encodeToString(mac.doFinal(value.getBytes(StandardCharsets.UTF_8))); }
-        catch (Exception ex) { throw new IllegalStateException(ex); }
+
+    public String randomToken() {
+        byte[] bytes = new byte[32];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private String currentIssuer() {
+        return issuer;
     }
 
     private static boolean isUnsafePlaceholder(String value) {
