@@ -142,6 +142,7 @@ public class AtivoCarteiraService {
     }
 
     private AtivoCarteira buscarAtivoDaCarteira(Long carteiraId, Long ativoId) {
+        buscarCarteira(carteiraId);
         AtivoCarteira ativo = ativos.findById(ativoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Posicao nao encontrada"));
         if (!ativo.getCarteira().getId().equals(carteiraId)) {

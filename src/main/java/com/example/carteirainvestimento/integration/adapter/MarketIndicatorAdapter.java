@@ -4,4 +4,10 @@ import com.example.carteirainvestimento.dto.insight.IndicadorMercadoResponse;
 import java.util.List;
 
 /** Normalized boundary for market providers; provider payloads never leave this layer. */
-public interface MarketIndicatorAdapter { List<IndicadorMercadoResponse> buscarIndicadores(); }
+public interface MarketIndicatorAdapter {
+    List<IndicadorMercadoResponse> buscarIndicadores();
+
+    default String fonte() {
+        return getClass().getSimpleName();
+    }
+}

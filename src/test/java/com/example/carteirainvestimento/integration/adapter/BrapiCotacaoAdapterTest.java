@@ -12,6 +12,7 @@ import org.springframework.web.client.RestClient;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
@@ -43,6 +44,23 @@ class BrapiCotacaoAdapterTest {
                         """, MediaType.APPLICATION_JSON));
         assertThatThrownBy(() -> adapter.buscarCotacao("PETR4"))
                 .isInstanceOf(ExternalIntegrationException.class);
+    }
+
+    @Test
+    void translatesProviderUnauthorizedResponseWithoutLeakingConfiguredToken() {
+        String fakeToken = "fake-brapi-token-for-test";
+        RestClient.Builder builder = RestClient.builder();
+        server = MockRestServiceServer.bindTo(builder).build();
+        adapter = new BrapiCotacaoAdapter(new IntegrationProperties(
+                new IntegrationProperties.Brapi("https://brapi.test", fakeToken), null, null, null, null), builder);
+        server.expect(requestTo("https://brapi.test/api/v2/stocks/quote?symbols=PETR4"))
+                .andExpect(header("Authorization", "Bearer " + fakeToken))
+                .andRespond(withStatus(HttpStatus.UNAUTHORIZED).body("provider rejected fake-brapi-token"));
+
+        assertThatThrownBy(() -> adapter.buscarCotacao("PETR4"))
+                .isInstanceOf(ExternalIntegrationException.class)
+                .hasMessage("Falha ao consultar a BRAPI")
+                .hasMessageNotContaining(fakeToken);
     }
 
     @Test

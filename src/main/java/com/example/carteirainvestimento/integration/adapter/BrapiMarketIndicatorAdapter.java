@@ -33,6 +33,11 @@ public class BrapiMarketIndicatorAdapter implements MarketIndicatorAdapter {
     }
 
     @Override
+    public String fonte() {
+        return "BRAPI";
+    }
+
+    @Override
     public List<IndicadorMercadoResponse> buscarIndicadores() {
         if (!configured) return List.of(indisponivel("IBOV", "Ibovespa"), indisponivel("CDI", "CDI"), indisponivel("USD", "Dólar comercial"));
         return List.of(ibovespa(), cdi(), dolar());

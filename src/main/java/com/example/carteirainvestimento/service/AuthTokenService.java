@@ -66,6 +66,7 @@ public class AuthTokenService {
         String normalized = value.trim().toLowerCase(java.util.Locale.ROOT);
         return normalized.equals("dev-secret-change-this-value-please")
                 || normalized.equals("dev-only-change-me")
+                || normalized.contains("dev-only-change-me")
                 || normalized.contains("change-this")
                 || normalized.contains("changeme")
                 || normalized.equals("password")

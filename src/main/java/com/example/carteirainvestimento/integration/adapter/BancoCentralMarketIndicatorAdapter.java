@@ -30,6 +30,11 @@ public class BancoCentralMarketIndicatorAdapter implements MarketIndicatorAdapte
     }
 
     @Override
+    public String fonte() {
+        return "BANCO_CENTRAL_SGS";
+    }
+
+    @Override
     public List<IndicadorMercadoResponse> buscarIndicadores() {
         return List.of(ibovespa(), serie("CDI", "CDI", 4389), serie("USD", "Dólar comercial", 1));
     }

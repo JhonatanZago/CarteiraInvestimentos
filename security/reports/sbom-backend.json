@@ -1,10 +1,10 @@
 {
   "bomFormat" : "CycloneDX",
   "specVersion" : "1.6",
-  "serialNumber" : "urn:uuid:7445e0f7-4b14-45d5-8148-0fd99a70983f",
+  "serialNumber" : "urn:uuid:ac1affc3-f3cc-4bdf-8323-2078cc2fe1f0",
   "version" : 1,
   "metadata" : {
-    "timestamp" : "2026-11-08T01:21:14Z",
+    "timestamp" : "2026-11-15T17:02:43Z",
     "tools" : {
       "components" : [
         {
@@ -6884,43 +6884,43 @@
     },
     {
       "type" : "library",
-      "bom-ref" : "pkg:maven/org.webjars/swagger-ui@5.30.1?type=jar",
+      "bom-ref" : "pkg:maven/org.webjars/swagger-ui@5.34.1?type=jar",
       "group" : "org.webjars",
       "name" : "swagger-ui",
-      "version" : "5.30.1",
+      "version" : "5.34.1",
       "description" : "WebJar for Swagger UI",
       "hashes" : [
         {
           "alg" : "MD5",
-          "content" : "06497c85643137b043cfe558f9749132"
+          "content" : "186703041f307957a48420b895d7ff2d"
         },
         {
           "alg" : "SHA-1",
-          "content" : "6501a58d558970f16895659f2edac8173fa9c32e"
+          "content" : "84bd35757e584574f6b1b7e57c5998b817017b4b"
         },
         {
           "alg" : "SHA-256",
-          "content" : "13f27a9da605821b17797ec96d9f64c7bf4fb7b1ddf7d1b0afd73d9f4f856970"
+          "content" : "b57f6379a9498c94160d5fd413984757b04d1683ac757d7ba0b6d9b4ba0daee2"
         },
         {
           "alg" : "SHA-512",
-          "content" : "7f2b6d155610d6fc64fcd4548c29f7feac55e826f8d04dfac1150799c71dab80e95221a6d03804b44009a91181134c276132d2a19ed1ffbbb3c5c722aaba3e80"
+          "content" : "0381690cb6610ffe86d58025bc4fa32d7a22c7a61d83ff35a57f45c9bf0f66f12b624395dbd90dde4d1c952a0dea906540f0c3b08c0179c71c32482997c02715"
         },
         {
           "alg" : "SHA3-256",
-          "content" : "f4bea3e4912d32da087e21f866d1460f8ad8736393ccc02abf1cd314d94ba13b"
+          "content" : "82a62e6dd013d136f5a9eb02c07950dfddf98af45cfe4fb127c44acfeffd39f0"
         },
         {
           "alg" : "SHA3-512",
-          "content" : "78b14fcd980c43cf8d6d16c9ac925121fe2efc91e72003b636fadc3f4197f5ae0760017c96f5f943f9df84b062146e17d4e145883732bb4d6693b756880b2d95"
+          "content" : "43e053975fc2e341e44acf12c7be08de30212fec1fcefdb857581ad984a8f895d68f5030c983c31ad1d5b8405f5a441f26718170896d1a3b2baed899f67d3a82"
         },
         {
           "alg" : "SHA-384",
-          "content" : "b9dddbc87cfa00e8b50dc9c55dc74a1c352277e8c496c4209e85162e264da98e7ce3d9446ebdcfe34634228f1e416089"
+          "content" : "ccb72cba95325fc1e3bff5c878171f5b58e7e79a22a54eed57f4df1e8f0558f9c2f332befaf51b599a785b6e44bfef3a"
         },
         {
           "alg" : "SHA3-384",
-          "content" : "4d6d096d9e90640f432c19e40b9602a3887f8f97a29f75226dbdd59fa5c2fff23b742c278808928f17909e97cbcc00ce"
+          "content" : "3b55dc56e70a71637bc0f66a934e24af6aa127c4227375cb1a998367bfeb5b8cd804cd29375fe06a00b83dab0984104e"
         }
       ],
       "licenses" : [
@@ -6931,7 +6931,7 @@
           }
         }
       ],
-      "purl" : "pkg:maven/org.webjars/swagger-ui@5.30.1?type=jar",
+      "purl" : "pkg:maven/org.webjars/swagger-ui@5.34.1?type=jar",
       "modified" : false,
       "externalReferences" : [
         {
@@ -7284,7 +7284,8 @@
         "pkg:maven/org.springframework.boot/spring-boot-starter-data-jpa@4.0.9?type=jar",
         "pkg:maven/org.springframework.boot/spring-boot-starter-security@4.0.9?type=jar",
         "pkg:maven/org.springframework.boot/spring-boot-starter-validation@4.0.9?type=jar",
-        "pkg:maven/org.springframework.boot/spring-boot-starter-webmvc@4.0.9?type=jar"
+        "pkg:maven/org.springframework.boot/spring-boot-starter-webmvc@4.0.9?type=jar",
+        "pkg:maven/org.webjars/swagger-ui@5.34.1?type=jar"
       ]
     },
     {
@@ -7600,7 +7601,7 @@
       "ref" : "pkg:maven/org.springdoc/springdoc-openapi-starter-webmvc-ui@3.0.0?type=jar",
       "dependsOn" : [
         "pkg:maven/org.springdoc/springdoc-openapi-starter-webmvc-api@3.0.0?type=jar",
-        "pkg:maven/org.webjars/swagger-ui@5.30.1?type=jar",
+        "pkg:maven/org.webjars/swagger-ui@5.34.1?type=jar",
         "pkg:maven/org.webjars/webjars-locator-lite@1.1.5?type=jar"
       ]
     },
@@ -7981,7 +7982,7 @@
       ]
     },
     {
-      "ref" : "pkg:maven/org.webjars/swagger-ui@5.30.1?type=jar",
+      "ref" : "pkg:maven/org.webjars/swagger-ui@5.34.1?type=jar",
       "dependsOn" : [ ]
     },
     {

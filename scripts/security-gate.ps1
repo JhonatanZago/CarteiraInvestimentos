@@ -83,9 +83,16 @@ if ($LASTEXITCODE -ne 0) { $failures.Add('spotbugs') }
 
 Write-Host '== 6/6 DAST: OWASP ZAP Baseline =='
 if ($RunZap) {
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-zap-baseline.ps1
-    if ($LASTEXITCODE -eq 2) { $failures.Add('zap:alerts') }
-    elseif ($LASTEXITCODE -gt 2) { $failures.Add('zap:execution') }
+    try {
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-zap-baseline.ps1
+        $zapExitCode = $LASTEXITCODE
+        if ($zapExitCode -eq 2) { $failures.Add('zap:alerts') }
+        elseif ($zapExitCode -ne 0) { $failures.Add('zap:execution') }
+    }
+    catch {
+        Write-Warning "DAST execution failed: $($_.Exception.Message)"
+        $failures.Add('zap:execution')
+    }
 }
 else {
     Write-Warning 'DAST: NAO EXECUTADO. Use -RunZap somente com backend local isolado e alvo autorizado.'

@@ -35,7 +35,7 @@ public class AuthService {
         return new LoginResult(new LoginResponse(tokens.accessToken(u.getId(), ACCESS_TTL), ACCESS_TTL, view(u)), raw, ttl);
     }
     @Transactional public LoginResult refresh(String raw) {
-        if (raw==null) throw new BusinessRuleException("Sessão expirada"); RefreshToken rt=refreshTokens.findByTokenHash(tokens.hash(raw)).orElseThrow(()->new BusinessRuleException("Sessão expirada"));
+        if (raw==null) throw new BusinessRuleException("Sessão expirada"); RefreshToken rt=refreshTokens.findByTokenHashForUpdate(tokens.hash(raw)).orElseThrow(()->new BusinessRuleException("Sessão expirada"));
         if (rt.isUsado() || rt.getExpiraEm().isBefore(now())) throw new BusinessRuleException("Sessão expirada"); rt.setUsado(true); String next=tokens.randomToken(); RefreshToken replacement=new RefreshToken(); replacement.setUsuario(rt.getUsuario()); replacement.setTokenHash(tokens.hash(next)); replacement.setExpiraEm(rt.getExpiraEm()); replacement.setUsado(false); refreshTokens.save(replacement); return new LoginResult(new LoginResponse(tokens.accessToken(rt.getUsuario().getId(),ACCESS_TTL),ACCESS_TTL,view(rt.getUsuario())), next, Math.max(1,java.time.Duration.between(now(),rt.getExpiraEm()).getSeconds()));
     }
     @Transactional public void logout(String raw){ if(raw!=null) refreshTokens.findByTokenHash(tokens.hash(raw)).ifPresent(refreshTokens::delete); }

@@ -51,6 +51,8 @@ public class SecurityConfig {
                     ).permitAll();
                     if (local) {
                         publicAuth.requestMatchers("/h2-console/**").permitAll();
+                    } else {
+                        publicAuth.requestMatchers("/h2-console/**").denyAll();
                     }
                     if (testPermitAll && environment.acceptsProfiles(Profiles.of("test"))) {
                         publicAuth.anyRequest().permitAll();
@@ -72,7 +74,7 @@ public class SecurityConfig {
                 })
                         .addHeaderWriter(new StaticHeadersWriter(
                                 "Content-Security-Policy",
-                                "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+                                "default-src 'self'; script-src 'self'; "
                                         + "style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; "
                                         + "frame-ancestors 'none'; form-action 'self'"))
                         .addHeaderWriter(new StaticHeadersWriter(

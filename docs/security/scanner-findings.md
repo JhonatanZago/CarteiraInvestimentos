@@ -43,6 +43,12 @@ Validacao final: `spotbugsMain` aprovado, `clean test` aprovado (100 testes, 0 f
 
 O detector de CORS nao foi executado por causa do crash conhecido dessa versao do FindSecBugs; a configuracao CORS continua coberta pelos testes Spring e pelos scans Semgrep. Essa e uma limitacao residual da ferramenta.
 
+## Revisão da task 7.5 — 2026-11-12
+
+Revisão concluída sem alterar a configuração do scanner. FindSecBugs 1.14.0 permanece carregado pelo SpotBugs 4.10.5; o relatório atual contém zero `BugInstance` emitido, zero `SPRING_CSRF_PROTECTION_DISABLED` emitido e zero erro de análise. A exclusão de `CorsRegistryCORSDetector` continua específica e justificada pela exceção interna reproduzida em `CorsConfig`; nenhuma versão substituta compatível foi validada no projeto.
+
+O estado CSRF permanece arquiteturalmente delimitado: recursos financeiros mutáveis exigem Bearer, refresh/logout são os únicos endpoints autorizados por cookie e `CsrfBoundarySecurityTest`/`CorsComprehensiveSecurityTest` cobrem origens ausentes, nulas, não autorizadas, cross-site e métodos de estado. Caso surja autorização financeira por cookie, a exceção deverá ser removida e uma proteção CSRF explícita deverá ser introduzida. ZAP e Security Gate permanecem inalterados.
+
 ## Gitleaks
 
 - Versão: imagem Docker `zricethezav/gitleaks:v8.30.1`.
@@ -214,4 +220,56 @@ Ambiente: Docker Desktop `4.88.1` / Engine `29.7.2`; backend Spring Boot `4.0.9`
 Antes dos headers: 7 categorias WARN-NEW, 0 FAIL, 61 PASS. Depois: 6 categorias WARN-NEW, 0 FAIL, 62 PASS. O DAST foi executado de fato; portanto nÃ£o deve ser registrado como “0 alertas”.
 
 O gate explÃ­cito `scripts/security-gate.ps1 -RunZap` confirmou Semgrep 0, Gitleaks atual sem leaks nos escopos, OSV 0, SpotBugs/FindSecBugs 0 e ZAP com WARNs. O resultado foi `REPROVADO` por `zap:alerts`, sem supressÃ£o genÃ©rica. O token BRAPI histÃ³rico continua pendente e sem revogaÃ§Ã£o confirmada.
-Na reexecuÃ§Ã£o final, apÃ³s `frame-ancestors` e `form-action` serem explicitados, o alerta CSP de fallback desapareceu. Permaneceram 6 categorias WARN-NEW, 0 FAIL e 62 PASS; o CSP restante Ã© exclusivamente `unsafe-inline` para script/style do Swagger UI.
+Na reexecuÃ§Ã£o anterior Ã  atualizaÃ§Ã£o do webjar, apÃ³s `frame-ancestors` e `form-action` serem explicitados, o alerta CSP de fallback desapareceu. Permaneceram 6 categorias WARN-NEW, 0 FAIL e 62 PASS; o CSP restante era `unsafe-inline` para script/style do Swagger UI.
+
+## Tratamento dos alertas ZAP — Command 16 — 2026-11-07
+
+| Item | Antes | Depois | Resultado |
+|---|---|---|---|
+| Springdoc / Swagger UI | Springdoc 3.0.0 / webjar 5.30.1 | webjar efetivo 5.34.1 | Atualizado pontualmente |
+| DOMPurify | 3.2.6 no `swagger-ui-bundle.js` | 3.4.17 no bundle 5.34.1 | ZAP `10003` eliminado |
+| ZAP | 62 PASS, 0 FAIL, 6 categorias WARN | 63 PASS, 0 FAIL, 5 categorias WARN | Exit 2 por warnings residuais |
+
+O alerta `10003 Vulnerable JS Library` era aplicavel: a evidencia apontava DOMPurify 3.2.6 servido pelo Swagger UI transitivo. A comparacao do artefato oficial confirmou DOMPurify 3.4.17 em Swagger UI 5.34.1; a dependencia direta foi adicionada somente apos essa verificacao. O Gradle confirmou a selecao de 5.34.1 sobre 5.30.1.
+
+Investigacao de Maven Central: o erro inicial `Permission denied: getsockopt` ocorreu durante a resolucao HTTPS do Gradle. Java 21, Gradle 9.5.1, DNS e TCP/443 foram verificados; nenhuma validacao TLS foi desabilitada e nenhum certificado desconhecido foi instalado. Com Java 21 explicito e cache alternativo, a resolucao terminou com `BUILD SUCCESSFUL`.
+
+Alertas residuais do novo relatorio:
+
+- `10055 CSP: script-src unsafe-inline`: Medium; mantido por compatibilidade do Swagger UI. A diretiva `style-src unsafe-inline` nao foi emitida como alerta separado nesta execucao.
+- `10049 Non-Storable Content`: Informational; comportamento conservador de cache em respostas locais.
+- `10096 Timestamp Disclosure - Unix`: Low; timestamps em JavaScript estatico do Swagger UI, sem dado sensivel.
+- `10109 Modern Web Application`: Informational; classificacao do Swagger UI.
+- `90004 Cross-Origin-Embedder-Policy Header Missing or Invalid`: Low; detector ainda sinaliza recursos Swagger apesar dos headers defensivos; `require-corp` nao foi aplicado sem teste de compatibilidade.
+
+Regressao comprovada: backend `clean test` e `build` aprovados; SpotBugs/FindSecBugs sem achados; frontend build aprovado e 63 testes aprovados. O token BRAPI historico permanece risco aberto, sem exibicao ou revogacao confirmada.
+
+O Security Gate final com `-RunZap` foi executado com backend local isolado. Semgrep, Gitleaks atual, OSV backend/frontend e SpotBugs/FindSecBugs passaram; ZAP confirmou 63 PASS, 0 FAIL e 5 WARN. O gate terminou `REPROVADO` por `zap:alerts`, sem mascarar alertas ou falha de execucao.
+
+## Triagem final ZAP — Command 17 — 2026-11-07
+
+| ID | Nome | Severidade | Confianca | Ocorrencias | Classificacao |
+|---|---|---|---|---:|---|
+| 10055 | CSP: script-src unsafe-inline | Medium | High | 1 entrada / 2 observacoes | Residual proposto; Swagger exige validacao de nonce/hash |
+| 10055 | CSP: style-src unsafe-inline | Medium | High | 1 entrada / 2 observacoes | Residual proposto; sem alteracao generica |
+| 90004 | COEP Header Missing or Invalid | Low | Medium | 1 | Residual proposto; `unsafe-none` deliberado |
+| 90004 | CORP Header Missing or Invalid | Low | Medium | 5 | Residual proposto; `same-site` deliberado |
+| 10096 | Timestamp Disclosure - Unix | Low | Low | 5 | Baixo, bundle estatico de terceiro |
+| 10109 | Modern Web Application | Informational | Medium | 1 | Informativo, nenhuma acao |
+| 10049 | Non-Storable Content | Informational | Medium | 4 | Informativo/baixo; `no-store` protege respostas |
+
+Headers reais foram validados em Swagger, CSS, JavaScript estatico e rota protegida. Todos receberam CSP, COEP, CORP, COOP e cache-control conservadores. Nao foi adicionado `unsafe-eval`, origem generica, `require-corp` ou bypass do gate.
+
+A politica auditavel de tratamento esta em `docs/security/zap-risk-acceptance.md`. Os sete itens estao como `PROPOSTO`, nunca `APROVADO`; cada um possui recurso, evidencia sanitizada, impacto, probabilidade, controles, responsavel pendente e revisao proposta. `zap:alerts` continua bloqueante. A credencial BRAPI historica continua sem revogacao confirmada.
+
+## Atualizacao Command 18 — CSP script-src corrigido
+
+O `swagger-ui:5.34.1/index.html` foi inspecionado e contem somente tres scripts externos, sem bloco inline. A remocao de `unsafe-inline` de `script-src` foi aplicada e validada por HTTP local. O alerta `10055 script-src unsafe-inline` deixou de aparecer.
+
+Resultado posterior: 63 PASS, 0 FAIL, 5 categorias WARN e 6 entradas. Restam apenas `style-src unsafe-inline`, COEP/CORP, timestamps, Modern Web Application e Non-Storable Content. O risco de `script-src` foi movido para a secao de correcao aplicada da politica, enquanto os demais permanecem `PROPOSTO`.
+
+O Security Gate executado novamente com `-RunZap` manteve o resultado `REPROVADO` por `zap:alerts`; Semgrep, Gitleaks atual, OSV e SpotBugs/FindSecBugs permaneceram aprovados. Nenhum bypass ou excecao foi aplicado.
+
+## Auditoria final de encerramento — Command 19
+
+O relatório `docs/security/module-11-final-audit.md` consolida as 10 tarefas pendentes, as evidências existentes e ausentes, os seis alertas ZAP residuais e o procedimento ainda pendente de revogação/rotação do token BRAPI histórico. Nenhum status OpenSpec foi alterado nesta auditoria.

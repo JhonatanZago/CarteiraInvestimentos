@@ -2,20 +2,20 @@
 
 ## 1. Authentication and token configuration
 
-- [ ] 1.1 Replace the JWT placeholder fallback with external-only configuration and test that non-test startup rejects missing, short, or known-default secrets without logging the secret; verify with focused `AuthTokenService`/context tests.
-- [ ] 1.2 Preserve the current HMAC access-token format, expiry validation, refresh-token rotation, and hashed persistence while adding the secure-secret policy; verify existing authentication tests plus valid/invalid/expired token scenarios.
-- [ ] 1.3 Add environment-aware refresh-cookie properties and emit/clear `HttpOnly`, `Secure`, `SameSite`, path, and max-age consistently; verify `Set-Cookie` headers for local and secure configurations and Angular refresh compatibility.
+- [x] 1.1 Replace the JWT placeholder fallback with external-only configuration and test that non-test startup rejects missing, short, or known-default secrets without logging the secret; verify with focused `AuthTokenService`/context tests. Placeholder-prefix validation and UTF-8 assertion were corrected; focused JWT tests passed 13/13, backend regression passed, frontend build/tests passed, and SpotBugs passed.
+- [x] 1.2 Preserve the current HMAC access-token format, expiry validation, refresh-token rotation, and hashed persistence while adding the secure-secret policy; verify existing authentication tests plus valid/invalid/expired token scenarios. Concurrent rotation was verified with two real MockMvc/H2 requests: exactly one success and one rejection, with a pessimistic row lock preserving a single valid successor.
+- [x] 1.3 Add environment-aware refresh-cookie properties and emit/clear `HttpOnly`, `Secure`, `SameSite`, path, and max-age consistently; verify `Set-Cookie` headers for local and secure configurations and Angular refresh compatibility. Local HTTP and deployment-like HTTPS MockMvc coverage, invalid/expired-cookie rejection, logout invalidation, and Angular credentialed refresh/session cleanup are covered.
 
 ## 2. HTTP security boundaries
 
-- [ ] 2.1 Replace broad CORS origin patterns and wildcard headers with exact configured origins, explicit methods/headers, and credential handling; verify allowed and rejected preflight/actual-origin behavior.
-- [ ] 2.2 Document and enforce the bearer-token/refresh-cookie CSRF boundary without changing the established Angular flow; verify cookie-only requests cannot access or mutate protected financial endpoints and valid bearer requests remain functional.
-- [ ] 2.3 Disable H2 console by default and permit it only for an explicit local-development profile; verify deployment-like profiles reject/disable it and local profile behavior is isolated.
+- [x] 2.1 Replace broad CORS origin patterns and wildcard headers with exact configured origins, explicit methods/headers, and credential handling; verify allowed and rejected preflight/actual-origin behavior. Comprehensive MockMvc coverage validates allowed/denied origins, preflight, methods, headers, credentials, Vary, null/wildcard/protocol/port variants, and real protected GET/POST/PUT/DELETE behavior.
+- [x] 2.2 Document and enforce the bearer-token/refresh-cookie CSRF boundary without changing the established Angular flow; verify cookie-only requests cannot access or mutate protected financial endpoints and valid bearer requests remain functional. MockMvc coverage validates evil/null/absent origins, cookie-only GET/POST/PUT/DELETE rejection, Bearer success, refresh/logout cookie boundaries, preflight, content-type handling, and no token or error-detail exposure.
+- [x] 2.3 Disable H2 console by default and permit it only for an explicit local-development profile; verify deployment-like profiles reject/disable it and local profile behavior is isolated. `H2ConsoleSecurityTest` validated the enabled local profile against a real embedded HTTP port; `H2ConsoleDeploymentSecurityTest` validated `dev` with the console disabled, non-public access, and no local authorization. Outside `local`, `/h2-console/**` is explicitly denied.
 
 ## 3. Authorization and ownership regression coverage
 
-- [ ] 3.1 Review and, where necessary, tighten portfolio, position, sale, dashboard, evolution, income, and currency-analysis access paths to use authenticated owner scope; verify no financial formula, purchase, sale, history, or integration behavior changes.
-- [ ] 3.2 Add regression tests for login success/failure, missing/invalid/expired JWT, 401/403 responses, cross-user isolation, protected financial endpoints, and no data leakage; verify with the existing Spring Boot/JUnit/MockMvc stack.
+- [x] 3.1 Review and, where necessary, tighten portfolio, position, sale, dashboard, evolution, income, and currency-analysis access paths to use authenticated owner scope; verify no financial formula, purchase, sale, history, or integration behavior changes. Added real MockMvc/H2 two-user ownership coverage, enforced owner validation before position mutation/deletion and portfolio deletion side effects, and passed backend/frontend regression plus SpotBugs.
+- [x] 3.2 Add regression tests for login success/failure, missing/invalid/expired JWT, 401/403 responses, cross-user isolation, protected financial endpoints, and no data leakage; verify with the existing Spring Boot/JUnit/MockMvc stack. Added `NegativeAuthorizationSecurityTest` with real MockMvc/H2/JWT coverage and verified 148 backend tests, frontend regression, and SpotBugs.
 
 ## 4. Security documentation
 
@@ -43,7 +43,7 @@
 - [x] 7.2 Integrate FindSecBugs 1.14.0 and verify detector loading through a real `spotbugsMain` execution; record the targeted CORS detector limitation.
 - [x] 7.3 Correct the confirmed servlet JSON output finding and add a narrowly scoped, documented exception for the intentional bearer-token CSRF boundary.
 - [x] 7.4 Integrate `spotbugsMain` into `scripts/security-gate.ps1` and preserve fail-closed behavior for execution errors.
-- [ ] 7.5 Revisit the CSRF exception if any state-changing endpoint becomes cookie-authorized, and replace the CORS detector workaround when a compatible FindSecBugs release is available.
+- [x] 7.5 Revisit the CSRF exception if any state-changing endpoint becomes cookie-authorized, and replace the CORS detector workaround when a compatible FindSecBugs release is available. Current state remains bearer-only for financial mutations; refresh/logout are the only cookie endpoints, and no compatible FindSecBugs replacement for the reproduced `CorsRegistryCORSDetector` failure was validated. The scoped omission and future trigger are documented.
 
 ## 8. Supply-chain analysis — Command 12
 
@@ -64,4 +64,25 @@
 
 - [x] 9.1 Prepare a versioned OWASP ZAP Baseline runner restricted to local HTTP targets and isolated report paths; verify fail-closed behavior when Docker is unavailable.
 - [x] 9.2 Execute the Baseline Scan against the isolated local backend and preserve HTML/JSON/XML evidence after Docker became available; 13 local URLs covered, 0 FAIL, WARNs retained.
-- [x] 9.3 Triage ZAP alerts, apply only safe corrections, rerun backend/frontend regression, and document residual risk; Swagger UI DOMPurify remains pending due Maven resolution failure.
+- [x] 9.3 Triage ZAP alerts, apply only safe corrections, rerun backend/frontend regression, and document residual risk; header corrections and residual alerts are recorded.
+
+## 10. ZAP alert treatment — Command 16
+
+- [x] 10.1 Investigate the effective Springdoc/Swagger UI/DOMPurify chain and reproduce the Maven Central resolution issue; confirm the effective versions with Gradle and artifact evidence.
+- [x] 10.2 Apply the minimum compatible Swagger UI update only after verifying that the official artifact serves a corrected DOMPurify version; validate the selected runtime dependency.
+- [x] 10.3 Review CSP, COEP/CORP, and informational alerts without generic suppression; preserve compatibility and document residual findings.
+- [x] 10.4 Re-run backend/frontend regression, ZAP Baseline, reports, and the explicit Security Gate; keep `zap:alerts` and historical BRAPI exposure open where evidence requires.
+
+## 11. Final ZAP triage — Command 17
+
+- [x] 11.1 Inspect JSON/XML/HTML evidence and enumerate all seven residual report entries with exact IDs, severity, confidence, URLs, evidence, and counts.
+- [x] 11.2 Validate effective CSP, COEP, CORP, COOP, cache headers, and static timestamps against Swagger, static resources, and a protected route; preserve safe compatibility choices.
+- [x] 11.3 Create `docs/security/zap-risk-acceptance.md` with one auditable proposal per residual entry; leave every status PROPOSED and do not implement a gate bypass.
+- [x] 11.4 Re-run regression, ZAP, and the explicit Security Gate; retain `zap:alerts` as blocking and document the historical BRAPI credential as open.
+
+## 12. Final correction and risk governance — Command 18
+
+- [x] 12.1 Inspect effective headers and Swagger UI markup for duplicate/conflicting values and inline resources; record browser automation limitation.
+- [x] 12.2 Remove only the confirmed unnecessary `script-src unsafe-inline`, preserving style compatibility and authentication boundaries.
+- [x] 12.3 Re-run regression and ZAP, distinguish the corrected alert from residual risks, and update the auditable risk proposal without approvals.
+- [x] 12.4 Re-run the explicit Security Gate and strict OpenSpec validation; retain fail-closed behavior and the historical BRAPI risk.

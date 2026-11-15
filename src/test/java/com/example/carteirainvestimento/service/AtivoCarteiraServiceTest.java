@@ -104,6 +104,7 @@ class AtivoCarteiraServiceTest {
     void atualizaSemPermitirOutraCombinacaoIgual() {
         AtivoCarteira ativo = new AtivoCarteira();
         ativo.setId(10L); ativo.setCarteira(carteira);
+        when(carteiras.findById(1L)).thenReturn(Optional.of(carteira));
         when(ativos.findById(10L)).thenReturn(Optional.of(ativo));
         when(ativos.existsByCarteiraIdAndAcaoIdAndCorretoraIdAndIdNot(1L, 2L, 3L, 10L)).thenReturn(true);
 

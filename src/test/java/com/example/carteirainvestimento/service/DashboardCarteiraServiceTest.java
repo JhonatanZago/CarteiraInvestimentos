@@ -8,6 +8,8 @@ import com.example.carteirainvestimento.domain.Acao;
 import com.example.carteirainvestimento.domain.AtivoCarteira;
 import com.example.carteirainvestimento.dto.dashboard.DashboardCarteiraResponse;
 import com.example.carteirainvestimento.exception.ResourceNotFoundException;
+import com.example.carteirainvestimento.dto.financeiro.ContextoMonetario;
+import com.example.carteirainvestimento.enums.Moeda;
 import com.example.carteirainvestimento.repository.AtivoCarteiraRepository;
 import com.example.carteirainvestimento.repository.CarteiraRepository;
 import java.math.BigDecimal;
@@ -25,6 +27,7 @@ class DashboardCarteiraServiceTest {
 
     @Mock private CarteiraRepository carteiras;
     @Mock private AtivoCarteiraRepository ativos;
+    @Mock private ExchangeRateService exchangeRates;
 
     private DashboardCarteiraService service;
 
@@ -90,6 +93,60 @@ class DashboardCarteiraServiceTest {
     }
 
     @Test
+    void converteCadaComponenteUsdAntesDeConsolidarCarteiraMista() {
+        when(carteiras.existsById(1L)).thenReturn(true);
+        when(exchangeRates.usdToBrlContext()).thenReturn(ContextoMonetario.available(
+                Moeda.USD, Moeda.BRL, BigDecimal.ONE, new BigDecimal("5"), new BigDecimal("5"),
+                OffsetDateTime.parse("2026-11-15T11:00:00Z"), "TEST-FX"));
+        AtivoCarteira brl = posicao("2", "10", "12", OffsetDateTime.now(ZoneOffset.UTC), Moeda.BRL);
+        AtivoCarteira usd = posicao("1", "10", "12", OffsetDateTime.now(ZoneOffset.UTC), Moeda.USD);
+        when(ativos.findByCarteiraId(1L)).thenReturn(List.of(brl, usd));
+        service = new DashboardCarteiraService(carteiras, ativos, exchangeRates);
+
+        DashboardCarteiraResponse dashboard = service.calcular(1L);
+
+        assertThat(dashboard.valorInvestido()).isEqualByComparingTo("70.00");
+        assertThat(dashboard.valorAtual()).isEqualByComparingTo("84.00");
+        assertThat(dashboard.composicao().get(0).valorInvestido()).isEqualByComparingTo("20.00");
+        assertThat(dashboard.composicao().get(1).valorInvestido()).isEqualByComparingTo("10.00");
+        assertThat(dashboard.composicao().get(1).valorInvestidoConvertidoBase()).isEqualByComparingTo("50.00");
+    }
+
+    @Test
+    void naoCalculaTotalConsolidadoQuandoCambioUsdEstaIndisponivel() {
+        when(carteiras.existsById(1L)).thenReturn(true);
+        when(exchangeRates.usdToBrlContext()).thenReturn(ContextoMonetario.unavailable(
+                Moeda.USD, Moeda.BRL, BigDecimal.ONE, "FX_PROVIDER_UNAVAILABLE"));
+        when(ativos.findByCarteiraId(1L)).thenReturn(List.of(
+                posicao("2", "10", "12", OffsetDateTime.now(ZoneOffset.UTC), Moeda.BRL),
+                posicao("1", "10", "12", OffsetDateTime.now(ZoneOffset.UTC), Moeda.USD)));
+        service = new DashboardCarteiraService(carteiras, ativos, exchangeRates);
+
+        DashboardCarteiraResponse dashboard = service.calcular(1L);
+
+        assertThat(dashboard.valorInvestido()).isNull();
+        assertThat(dashboard.valorAtual()).isNull();
+        assertThat(dashboard.resultado()).isNull();
+        assertThat(dashboard.rentabilidadePercentual()).isNull();
+        assertThat(dashboard.composicao().get(0).valorInvestidoConvertidoBase()).isEqualByComparingTo("20");
+        assertThat(dashboard.composicao().get(1).valorInvestidoConvertidoBase()).isNull();
+    }
+
+    @Test
+    void naoAssumeBrlQuandoMoedaDaPosicaoEstaAusente() {
+        when(carteiras.existsById(1L)).thenReturn(true);
+        when(ativos.findByCarteiraId(1L)).thenReturn(List.of(
+                posicao("1", "10", "12", OffsetDateTime.now(ZoneOffset.UTC), null)));
+
+        DashboardCarteiraResponse dashboard = service.calcular(1L);
+
+        assertThat(dashboard.valorInvestido()).isNull();
+        assertThat(dashboard.valorAtual()).isNull();
+        assertThat(dashboard.composicao().getFirst().valorInvestido()).isEqualByComparingTo("10");
+        assertThat(dashboard.composicao().getFirst().valorInvestidoConvertidoBase()).isNull();
+    }
+
+    @Test
     void rejeitaCarteiraInexistente() {
         when(carteiras.existsById(99L)).thenReturn(false);
 
@@ -97,7 +154,13 @@ class DashboardCarteiraServiceTest {
     }
 
     private AtivoCarteira posicao(String quantidade, String precoMedio, String cotacao, OffsetDateTime dataHoraCotacao) {
+        return posicao(quantidade, precoMedio, cotacao, dataHoraCotacao, Moeda.BRL);
+    }
+
+    private AtivoCarteira posicao(String quantidade, String precoMedio, String cotacao,
+            OffsetDateTime dataHoraCotacao, Moeda moeda) {
         Acao acao = new Acao();
+        acao.setMoeda(moeda);
         acao.setCotacaoAtual(cotacao == null ? null : new BigDecimal(cotacao));
         acao.setDataHoraCotacao(dataHoraCotacao);
         AtivoCarteira posicao = new AtivoCarteira();
