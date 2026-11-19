@@ -87,4 +87,37 @@ class ContextoMonetarioTest {
         assertThat(json).contains("\"valorOriginal\":0.10");
         assertThat(json).contains("\"taxaCambio\":5.20");
     }
+
+    @Test
+    void rejectsIncompleteAvailableAndUnavailableContexts() {
+        assertThatThrownBy(() -> ContextoMonetario.available(null, Moeda.BRL,
+                BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, CAMBIO_EM, "IDENTITY"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ContextoMonetario.available(Moeda.USD, Moeda.BRL,
+                BigDecimal.ONE, null, BigDecimal.ONE, CAMBIO_EM, "FX"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new ContextoMonetario(Moeda.USD, Moeda.BRL, BigDecimal.ONE,
+                BigDecimal.ONE, null, null, "FX", DisponibilidadeMonetaria.UNAVAILABLE))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void rejectsSameCurrencyReconversionAndMissingCrossCurrencyProvenance() {
+        assertThatThrownBy(() -> ContextoMonetario.available(Moeda.BRL, Moeda.BRL,
+                BigDecimal.TEN, new BigDecimal("11"), BigDecimal.ONE, CAMBIO_EM, "FX"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ContextoMonetario.available(Moeda.USD, Moeda.BRL,
+                BigDecimal.TEN, new BigDecimal("50"), null, CAMBIO_EM, "FX"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ContextoMonetario.available(Moeda.USD, Moeda.BRL,
+                BigDecimal.TEN, new BigDecimal("50"), BigDecimal.ONE, null, "FX"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void rejectsNegativeExchangeRateAndUnavailableConvertedValue() {
+        assertThatThrownBy(() -> new ContextoMonetario(Moeda.USD, Moeda.BRL, BigDecimal.ONE,
+                null, new BigDecimal("-1"), CAMBIO_EM, "FX", DisponibilidadeMonetaria.UNAVAILABLE))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

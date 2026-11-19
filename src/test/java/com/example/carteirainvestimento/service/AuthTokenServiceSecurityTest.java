@@ -70,6 +70,16 @@ class AuthTokenServiceSecurityTest {
         assertFalse(error.getMessage().contains(secret));
     }
 
+    @Test
+    void acceptsExactly32CharacterSecretOutsideTestProfile() {
+        MockEnvironment environment = new MockEnvironment().withProperty("spring.profiles.active", "prod");
+        AuthTokenService tokens = new AuthTokenService(
+                new AuthProperties("12345678901234567890123456789012", "carteira-investimento", true, "Lax", "/api/v1/auth"),
+                environment);
+
+        assertEquals(42L, tokens.userId(tokens.accessToken(42L, 60)));
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {
             "dev-only-change-me-please-123456789",

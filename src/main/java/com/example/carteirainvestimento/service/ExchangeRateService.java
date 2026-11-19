@@ -53,7 +53,7 @@ public class ExchangeRateService {
         for (MarketIndicatorAdapter adapter : adapters) {
             try {
                 for (IndicadorMercadoResponse indicator : adapter.buscarIndicadores()) {
-                    if (!isValidUsdBrlIndicator(indicator, adapter)) {
+                    if (!isValidUsdBrlIndicator(indicator, adapter, now)) {
                         continue;
                     }
                     ContextoMonetario context = ContextoMonetario.available(
@@ -107,12 +107,12 @@ public class ExchangeRateService {
     }
 
     private static boolean isValidUsdBrlIndicator(IndicadorMercadoResponse indicator,
-            MarketIndicatorAdapter adapter) {
+            MarketIndicatorAdapter adapter, Instant now) {
         if (indicator == null || !"USD".equalsIgnoreCase(indicator.codigo())
                 || indicator.disponibilidade() != DisponibilidadeInsight.AVAILABLE
                 || indicator.valor() == null || indicator.valor().signum() <= 0
                 || indicator.referenciaEm() == null
-                || indicator.referenciaEm().isAfter(OffsetDateTime.now(ZoneOffset.UTC))) {
+                || indicator.referenciaEm().toInstant().isAfter(now)) {
             return false;
         }
         return adapter.fonte() != null && !adapter.fonte().isBlank();

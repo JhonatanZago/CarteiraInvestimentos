@@ -87,4 +87,67 @@ class BrapiCotacaoAdapterTest {
 
         assertThat(adapter.buscarCotacao("VALE3").logoUrl()).isEqualTo("https://cdn.example.com/vale3.png");
     }
+
+    @Test
+    void rejectsEmptyResultsAndInvalidCurrency() {
+        server.expect(requestTo("https://brapi.test/api/v2/stocks/quote?symbols=EMPTY"))
+                .andRespond(withSuccess("{\"results\":[]}", MediaType.APPLICATION_JSON));
+        assertThatThrownBy(() -> adapter.buscarCotacao("EMPTY"))
+                .isInstanceOf(com.example.carteirainvestimento.exception.ResourceNotFoundException.class);
+
+        server.reset();
+        server.expect(requestTo("https://brapi.test/api/v2/stocks/quote?symbols=BAD"))
+                .andRespond(withSuccess("""
+                        {"results":[{"symbol":"BAD","longName":"Bad Asset","currency":"ZZZ",
+                        "regularMarketPrice":10,"regularMarketTime":"2026-09-04T15:30:00Z"}]}
+                        """, MediaType.APPLICATION_JSON));
+        assertThatThrownBy(() -> adapter.buscarCotacao("BAD"))
+                .isInstanceOf(ExternalIntegrationException.class);
+    }
+
+    @Test
+    void usesLegacyQuotationAfterServerFailureAndRejectsIncompleteLegacyPayload() {
+        server.expect(requestTo("https://brapi.test/api/v2/stocks/quote?symbols=PETR4"))
+                .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR));
+        server.expect(requestTo("https://brapi.test/api/quote/PETR4"))
+                .andRespond(withSuccess("""
+                        {"results":[{"symbol":"PETR4","longName":"Petrobras","currency":"BRL",
+                        "regularMarketPrice":38.50,"regularMarketTime":"2026-09-04T15:30:00Z",
+                        "exchange":"B3","logourl":"http://insecure.example/logo"}]}
+                        """, MediaType.APPLICATION_JSON));
+
+        assertThatThrownBy(() -> adapter.buscarCotacao("PETR4"))
+                .isInstanceOf(ExternalIntegrationException.class);
+
+        server.reset();
+        server.expect(requestTo("https://brapi.test/api/v2/stocks/quote?symbols=VALE3"))
+                .andRespond(withStatus(HttpStatus.BAD_GATEWAY));
+        server.expect(requestTo("https://brapi.test/api/quote/VALE3"))
+                .andRespond(withSuccess("{\"results\":[{\"symbol\":\"VALE3\"}]}", MediaType.APPLICATION_JSON));
+
+        assertThatThrownBy(() -> adapter.buscarCotacao("VALE3"))
+                .isInstanceOf(ExternalIntegrationException.class);
+    }
+
+    @Test
+    void rejectsProviderErrorAndUsesTopLevelQuotationFields() {
+        server.expect(requestTo("https://brapi.test/api/v2/stocks/quote?symbols=ERROR"))
+                .andRespond(withSuccess("{\"error\":true}", MediaType.APPLICATION_JSON));
+        assertThatThrownBy(() -> adapter.buscarCotacao("ERROR"))
+                .isInstanceOf(ExternalIntegrationException.class);
+
+        server.reset();
+        server.expect(requestTo("https://brapi.test/api/v2/stocks/quote?symbols=ITUB4"))
+                .andRespond(withSuccess("""
+                        {"results":[{"symbol":"ITUB4","longName":"Itau Unibanco","currency":"BRL",
+                        "regularMarketPrice":30.10,"regularMarketTime":"2026-09-04T15:30:00Z",
+                        "exchangeName":"B3","exchangeMic":"BVMF"}]}
+                        """, MediaType.APPLICATION_JSON));
+
+        var quote = adapter.buscarCotacao("ITUB4");
+        assertThat(quote.nomeEmpresa()).isEqualTo("Itau Unibanco");
+        assertThat(quote.exchange()).isEqualTo("B3");
+        assertThat(quote.exchangeMic()).isEqualTo("BVMF");
+    }
+
 }

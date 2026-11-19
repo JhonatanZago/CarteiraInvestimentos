@@ -1,0 +1,71 @@
+{
+  "info": {
+    "name": "Carteira de Investimentos - Aula 13 JWT",
+    "description": "Colecao sem credenciais reais para validar cadastro, login, JWT Bearer, refresh cookie, logout e respostas 401/403.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "accessToken", "value": "" },
+    { "key": "testEmail", "value": "usuario.postman@example.com" },
+    { "key": "testPassword", "value": "SenhaAcademica123!" },
+    { "key": "expiredToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Cadastro",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Usuario Postman\",\n  \"email\": \"{{testEmail}}\",\n  \"senha\": \"{{testPassword}}\",\n  \"confirmacaoSenha\": \"{{testPassword}}\"\n}" },
+        "url": "{{baseUrl}}/api/v1/auth/cadastro"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Cadastro retorna 201', function () { pm.response.to.have.status(201); });", "pm.test('Resposta nao expoe senha', function () { pm.expect(pm.response.text()).not.to.match(/senha|password|hash/i); });"] } }]
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"senha\": \"{{testPassword}}\",\n  \"manterConectado\": false\n}" },
+        "url": "{{baseUrl}}/api/v1/auth/login"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Login retorna 200', function () { pm.response.to.have.status(200); });", "const body = pm.response.json();", "pm.expect(body.accessToken).to.be.a('string').and.not.empty;", "pm.expect(body).not.to.have.property('senha');", "pm.expect(body).not.to.have.property('password');", "pm.collectionVariables.set('accessToken', body.accessToken);"] } }]
+    },
+    {
+      "name": "Usuario autenticado",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/api/v1/auth/me" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Consulta autenticada retorna 200', function () { pm.response.to.have.status(200); });", "pm.expect(pm.response.json()).to.have.property('email');"] } }]
+    },
+    {
+      "name": "Refresh pelo cookie HttpOnly",
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/auth/refresh" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Refresh retorna 200 quando o cookie esta disponivel', function () { pm.response.to.have.status(200); });", "const body = pm.response.json(); pm.expect(body.accessToken).to.be.a('string').and.not.empty; pm.collectionVariables.set('accessToken', body.accessToken);"] } }]
+    },
+    {
+      "name": "Logout",
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/auth/logout" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Logout retorna 204', function () { pm.response.to.have.status(204); });"] } }]
+    },
+    {
+      "name": "Sem token",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/me" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Sem token retorna 401', function () { pm.response.to.have.status(401); });", "pm.expect(pm.response.text()).not.to.match(/token|secret|stack|senha/i);"] } }]
+    },
+    {
+      "name": "Token invalido",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer invalid.jwt.token" }], "url": "{{baseUrl}}/api/v1/auth/me" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Token invalido retorna 401', function () { pm.response.to.have.status(401); });", "pm.expect(pm.response.text()).not.to.match(/secret|stack|senha/i);"] } }]
+    },
+    {
+      "name": "Token expirado",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{expiredToken}}" }], "url": "{{baseUrl}}/api/v1/auth/me" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Token expirado retorna 401', function () { pm.response.to.have.status(401); });"] } }]
+    },
+    {
+      "name": "Admin sem permissao",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/api/v1/admin/usuarios" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Usuario sem papel administrativo retorna 403', function () { pm.response.to.have.status(403); });"] } }]
+    }
+  ]
+}

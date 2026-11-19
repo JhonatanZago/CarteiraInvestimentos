@@ -11,6 +11,8 @@ import com.example.carteirainvestimento.domain.AtivoCarteira;
 import com.example.carteirainvestimento.domain.Carteira;
 import com.example.carteirainvestimento.domain.Corretora;
 import com.example.carteirainvestimento.dto.carteira.AtivoCarteiraRequest;
+import com.example.carteirainvestimento.dto.insight.ClassificacaoAlocacao;
+import com.example.carteirainvestimento.enums.Mercado;
 import com.example.carteirainvestimento.exception.BusinessRuleException;
 import com.example.carteirainvestimento.exception.DuplicateResourceException;
 import com.example.carteirainvestimento.exception.ResourceNotFoundException;
@@ -110,6 +112,63 @@ class AtivoCarteiraServiceTest {
 
         assertThatThrownBy(() -> service.atualizar(1L, 10L, request(BigDecimal.ONE, BigDecimal.ONE, LocalDate.now())))
                 .isInstanceOf(DuplicateResourceException.class);
+    }
+
+    @Test
+    void atualizaEExcluiPosicaoPertencenteACarteira() {
+        AtivoCarteira ativo = new AtivoCarteira();
+        ativo.setId(10L); ativo.setCarteira(carteira);
+        when(carteiras.findById(1L)).thenReturn(Optional.of(carteira));
+        when(ativos.findById(10L)).thenReturn(Optional.of(ativo));
+        when(ativos.existsByCarteiraIdAndAcaoIdAndCorretoraIdAndIdNot(1L, 2L, 3L, 10L)).thenReturn(false);
+        when(acoes.findById(2L)).thenReturn(Optional.of(acao));
+        when(corretoras.findById(3L)).thenReturn(Optional.of(corretora));
+        when(ativos.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.atualizar(1L, 10L, request(BigDecimal.ONE, BigDecimal.ONE, LocalDate.now()));
+        service.excluir(1L, 10L);
+
+        verify(ativos).save(ativo);
+        verify(ativos).delete(ativo);
+        verify(ativos).flush();
+    }
+
+    @Test
+    void rejeitaCarteiraInexistenteEPosicaoDeOutraCarteira() {
+        when(carteiras.findById(1L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.listar(1L))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        Carteira outra = new Carteira(); outra.setId(2L);
+        AtivoCarteira ativo = new AtivoCarteira(); ativo.setId(10L); ativo.setCarteira(outra);
+        when(carteiras.findById(1L)).thenReturn(Optional.of(carteira));
+        when(ativos.findById(10L)).thenReturn(Optional.of(ativo));
+        assertThatThrownBy(() -> service.excluir(1L, 10L))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void listaComFiltrosEOrdenacoesFinanceiras() {
+        acao.setTicker("PETR4"); acao.setMercado(Mercado.BRASIL); acao.setCotacaoAtual(new BigDecimal("30"));
+        Acao outraAcao = new Acao(); outraAcao.setId(5L); outraAcao.setTicker("AAPL");
+        outraAcao.setMercado(Mercado.EUA); outraAcao.setCotacaoAtual(new BigDecimal("200"));
+        AtivoCarteira br = posicao(acao, "2", "10");
+        AtivoCarteira us = posicao(outraAcao, "1", "100");
+        when(carteiras.findById(1L)).thenReturn(Optional.of(carteira));
+        when(ativos.findByCarteiraId(1L)).thenReturn(java.util.List.of(br, us));
+
+        assertThat(service.listar(1L, Mercado.BRASIL, null, "pet", "valorAtual")).containsExactly(br);
+        assertThat(service.listar(1L, null, ClassificacaoAlocacao.ACOES_BRASIL, null, "resultado")).containsExactly(br);
+        assertThat(service.listar(1L, null, null, "", "rentabilidade")).hasSize(2);
+        assertThat(service.listar(1L, null, null, null, null)).hasSize(2);
+    }
+
+    private AtivoCarteira posicao(Acao ativo, String quantidade, String preco) {
+        AtivoCarteira posicao = new AtivoCarteira();
+        posicao.setCarteira(carteira); posicao.setAcao(ativo); posicao.setCorretora(corretora);
+        posicao.setQuantidade(new BigDecimal(quantidade)); posicao.setPrecoMedio(new BigDecimal(preco));
+        posicao.setDataPrimeiraCompra(LocalDate.now());
+        return posicao;
     }
 
     private AtivoCarteiraRequest request(BigDecimal quantidade, BigDecimal precoMedio, LocalDate data) {

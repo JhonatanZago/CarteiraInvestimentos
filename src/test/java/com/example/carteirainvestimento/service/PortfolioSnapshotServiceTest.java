@@ -119,6 +119,45 @@ class PortfolioSnapshotServiceTest {
         assertThat(existing.getPatrimonioAtualBase()).isEqualByComparingTo("60");
     }
 
+    @Test
+    void persistsEmptySnapshotWithZeroAvailableBaseValues() {
+        Carteira carteira = new Carteira(); carteira.setId(1L);
+        CarteiraRepository carteiras = mock(CarteiraRepository.class);
+        AtivoCarteiraRepository ativos = mock(AtivoCarteiraRepository.class);
+        PortfolioSnapshotRepository snapshots = mock(PortfolioSnapshotRepository.class);
+        when(carteiras.getReferenceById(1L)).thenReturn(carteira);
+        when(ativos.findByCarteiraId(1L)).thenReturn(List.of());
+        when(snapshots.findTopByCarteiraIdOrderByDataHoraDesc(1L)).thenReturn(Optional.empty());
+
+        new PortfolioSnapshotService(carteiras, ativos, snapshots)
+                .registrarEvento(1L, OrigemSnapshotCarteira.POSITION_CREATED);
+
+        ArgumentCaptor<PortfolioSnapshot> captor = ArgumentCaptor.forClass(PortfolioSnapshot.class);
+        verify(snapshots).save(captor.capture());
+        assertThat(captor.getValue().getTotalInvestidoBase()).isEqualByComparingTo("0.00000000");
+        assertThat(captor.getValue().getDisponibilidadeMonetaria()).isEqualTo(DisponibilidadeMonetaria.AVAILABLE);
+    }
+
+    @Test
+    void marksSnapshotUnavailableWhenCurrencyOrQuoteIsUnresolved() {
+        Carteira carteira = new Carteira(); carteira.setId(1L);
+        AtivoCarteira unresolved = position(null, "2", "10", "12");
+        CarteiraRepository carteiras = mock(CarteiraRepository.class);
+        AtivoCarteiraRepository ativos = mock(AtivoCarteiraRepository.class);
+        PortfolioSnapshotRepository snapshots = mock(PortfolioSnapshotRepository.class);
+        when(carteiras.getReferenceById(1L)).thenReturn(carteira);
+        when(ativos.findByCarteiraId(1L)).thenReturn(List.of(unresolved));
+        when(snapshots.findTopByCarteiraIdOrderByDataHoraDesc(1L)).thenReturn(Optional.empty());
+
+        new PortfolioSnapshotService(carteiras, ativos, snapshots)
+                .registrarEvento(1L, OrigemSnapshotCarteira.POSITION_UPDATED);
+
+        ArgumentCaptor<PortfolioSnapshot> captor = ArgumentCaptor.forClass(PortfolioSnapshot.class);
+        verify(snapshots).save(captor.capture());
+        assertThat(captor.getValue().getDisponibilidadeMonetaria()).isEqualTo(DisponibilidadeMonetaria.UNAVAILABLE);
+        assertThat(captor.getValue().getTotalInvestidoBase()).isNull();
+    }
+
     private static ContextoMonetario identityContext() {
         return ContextoMonetario.available(Moeda.BRL, Moeda.BRL, BigDecimal.ONE, BigDecimal.ONE,
                 BigDecimal.ONE, java.time.OffsetDateTime.parse("2026-11-15T11:00:00Z"), "IDENTITY");

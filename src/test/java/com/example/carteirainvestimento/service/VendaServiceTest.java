@@ -17,8 +17,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class VendaServiceTest {
     @Mock CarteiraRepository carteiras; @Mock AtivoCarteiraRepository ativos; @Mock VendaRepository vendas;
     private VendaService service; private AtivoCarteira posicao;
@@ -50,5 +53,56 @@ class VendaServiceTest {
         assertThatThrownBy(() -> service.simular(1L, new VendaRequest(4L, new BigDecimal("21"), new BigDecimal("200"), BigDecimal.ZERO, LocalDate.now(), Moeda.USD))).isInstanceOf(BusinessRuleException.class);
         assertThatThrownBy(() -> service.simular(1L, new VendaRequest(4L, BigDecimal.ONE, new BigDecimal("200"), BigDecimal.ZERO, LocalDate.now(), Moeda.BRL))).isInstanceOf(BusinessRuleException.class);
         verifyNoInteractions(vendas);
+    }
+
+    @Test void totalSaleDeletesTheClosedPosition() {
+        when(vendas.save(any(Venda.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var result = service.confirmar(1L, new VendaRequest(4L, new BigDecimal("20"),
+                new BigDecimal("180"), BigDecimal.ZERO, LocalDate.now(), Moeda.USD));
+
+        assertThat(result.quantidadeRestante()).isZero();
+        assertThat(result.resultadoRealizado()).isEqualByComparingTo("0");
+        verify(ativos).delete(posicao);
+        verify(ativos, never()).save(any());
+    }
+
+    @Test void calculatesLossAndZeroResultWithoutPersistingSimulation() {
+        var loss = service.simular(1L, new VendaRequest(4L, new BigDecimal("5"),
+                new BigDecimal("170"), BigDecimal.ZERO, LocalDate.now(), Moeda.USD));
+        var zero = service.simular(1L, new VendaRequest(4L, new BigDecimal("5"),
+                new BigDecimal("180"), BigDecimal.ZERO, LocalDate.now(), Moeda.USD));
+
+        assertThat(loss.resultadoRealizado()).isEqualByComparingTo("-50");
+        assertThat(loss.rentabilidadePercentual()).isEqualByComparingTo("-5.5556");
+        assertThat(zero.resultadoRealizado()).isEqualByComparingTo("0");
+        assertThat(zero.rentabilidadePercentual()).isEqualByComparingTo("0");
+        verifyNoInteractions(vendas);
+    }
+
+    @Test void rejectsInvalidSaleDatesPricesFeesAndMissingRequests() {
+        assertThatThrownBy(() -> service.simular(1L, null)).isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> service.simular(1L, new VendaRequest(4L, BigDecimal.ONE,
+                BigDecimal.ONE, BigDecimal.ZERO, LocalDate.now().plusDays(1), Moeda.USD)))
+                .isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> service.simular(1L, new VendaRequest(4L, BigDecimal.ONE,
+                BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.now(), Moeda.USD)))
+                .isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> service.simular(1L, new VendaRequest(4L, BigDecimal.ONE,
+                BigDecimal.ONE, new BigDecimal("-0.01"), LocalDate.now(), Moeda.USD)))
+                .isInstanceOf(BusinessRuleException.class);
+    }
+
+    @Test void rejectsMissingWalletAndPositionBeforeCalculating() {
+        when(carteiras.existsById(1L)).thenReturn(false);
+        assertThatThrownBy(() -> service.simular(1L, new VendaRequest(4L, BigDecimal.ONE,
+                BigDecimal.ONE, BigDecimal.ZERO, LocalDate.now(), Moeda.USD)))
+                .isInstanceOf(com.example.carteirainvestimento.exception.ResourceNotFoundException.class);
+
+        when(carteiras.existsById(1L)).thenReturn(true);
+        when(ativos.findByIdAndCarteiraId(99L, 1L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.simular(1L, new VendaRequest(99L, BigDecimal.ONE,
+                BigDecimal.ONE, BigDecimal.ZERO, LocalDate.now(), Moeda.USD)))
+                .isInstanceOf(com.example.carteirainvestimento.exception.ResourceNotFoundException.class);
     }
 }

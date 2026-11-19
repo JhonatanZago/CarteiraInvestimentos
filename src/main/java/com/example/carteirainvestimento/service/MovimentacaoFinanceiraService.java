@@ -52,6 +52,7 @@ public class MovimentacaoFinanceiraService {
                 .orElseThrow(() -> new ResourceNotFoundException("Corretora nao encontrada"));
 
         Moeda moeda = acao.getMoeda();
+        validarCambioInformado(moeda, request);
         BigDecimal cambio = moeda == Moeda.BRL ? BigDecimal.ONE : request.cambioParaBrl();
         if (moeda != Moeda.BRL && (cambio == null || cambio.signum() <= 0)) {
             cambio = exchangeRates.usdToBrl();
@@ -121,6 +122,13 @@ public class MovimentacaoFinanceiraService {
                 || request.precoUnitario().signum() <= 0 || request.dataOperacao() == null
                 || request.dataOperacao().isAfter(LocalDate.now())) {
             throw new BusinessRuleException("Dados da movimentacao invalidos");
+        }
+    }
+
+    private void validarCambioInformado(Moeda moeda, MovimentacaoFinanceiraRequest request) {
+        if (moeda != Moeda.BRL && request.cambioParaBrl() != null
+                && request.cambioParaBrl().signum() <= 0) {
+            throw new BusinessRuleException("Cambio para BRL invalido");
         }
     }
 }

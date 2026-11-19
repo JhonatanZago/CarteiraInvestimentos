@@ -119,6 +119,42 @@ class ExchangeRateServiceTest {
         assertThat(calls).hasValue(2);
     }
 
+    @Test
+    void handlesNullCurrenciesAndProviderExceptionsWithoutInventingRates() {
+        var service = new ExchangeRateService(List.of(() -> {
+            throw new IllegalStateException("provider down");
+        }), fixedClock(NOW));
+
+        assertThat(service.obterTaxa(null, Moeda.BRL).disponibilidade())
+                .isEqualTo(DisponibilidadeMonetaria.UNAVAILABLE);
+        assertThat(service.obterTaxa(Moeda.USD, null).fonteCambio())
+                .isEqualTo("FX_INVALID_CURRENCY");
+        assertThat(service.usdToBrlContext().disponibilidade())
+                .isEqualTo(DisponibilidadeMonetaria.UNAVAILABLE);
+    }
+
+    @Test
+    void skipsWrongIndicatorCodeAndBlankSource() {
+        MarketIndicatorAdapter wrongCode = new MarketIndicatorAdapter() {
+            @Override public List<IndicadorMercadoResponse> buscarIndicadores() {
+                return List.of(new IndicadorMercadoResponse("CDI", "CDI", new BigDecimal("5"),
+                        null, REFERENCE, DisponibilidadeInsight.AVAILABLE));
+            }
+            @Override public String fonte() { return "SOURCE"; }
+        };
+        MarketIndicatorAdapter blankSource = new MarketIndicatorAdapter() {
+            @Override public List<IndicadorMercadoResponse> buscarIndicadores() {
+                return List.of(indicator(new BigDecimal("5"), REFERENCE, DisponibilidadeInsight.AVAILABLE));
+            }
+            @Override public String fonte() { return ""; }
+        };
+
+        var service = new ExchangeRateService(List.of(wrongCode, blankSource), fixedClock(NOW));
+
+        assertThat(service.usdToBrlContext().disponibilidade())
+                .isEqualTo(DisponibilidadeMonetaria.UNAVAILABLE);
+    }
+
     private static IndicadorMercadoResponse indicator(BigDecimal value, OffsetDateTime reference,
             DisponibilidadeInsight availability) {
         return new IndicadorMercadoResponse("USD", "Dólar", value, null, reference, availability);
